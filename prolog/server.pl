@@ -5,7 +5,8 @@
                                 tcp_listen/2,
                                 tcp_open_socket/3]).
 :- use_module(library(http/json), [json_read_dict/3,
-                                   json_write_dict/3]).
+                                   json_write_dict/3,
+                                   atom_json_dict/3]).
 :- use_module(library(dcg/basics), [string_without//2]).
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 
@@ -31,10 +32,10 @@ process_client(Socket) :-
 handle_request(StreamPair) :-
     phrase_from_stream(lsp_request(Req), StreamPair),
     debug(server, "Request ~w", [Req]),
-    handle_request(Req, Resp),
+    handle_msg(Req, Resp),
     atom_json_dict(JsonCodes, Resp, [as(codes)]),
     length(JsonCodes, ContentLength),
-    format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]).
+    format(StreamPair, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]).
 
 % parsing
 
