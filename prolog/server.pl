@@ -39,21 +39,12 @@ header(Key-Value) -->
     { string_codes(Key, KeyC), string_codes(Value, ValueC) }.
 
 headers([Header|Headers]) -->
-    header(Header), "\r\n",
+    header(Header), "\r\n", !,
     headers(Headers).
 headers([]) --> [].
 
 lsp_request(_{headers: Headers, body: Body}) -->
     headers(Headers), "\r\n",
     remainder(JsonCodes),
-    { debug(server, "codes ~s", [JsonCodes]),
-        open_codes_stream(JsonCodes, JsonStream),
+    { open_codes_stream(JsonCodes, JsonStream),
       json_read_dict(JsonStream, Body, []) }.
-
-?- S = `Content-Length: 123\r\n\r\n{"jsonrpc": "2.0",
-  "id": 1,
-  "method": "textDocument/didOpen",
-  "params": {
-    "thing": 1
-  }
-}`, phrase(lsp_request(Req), S), debug(server, "Req ~w", [Req]).
