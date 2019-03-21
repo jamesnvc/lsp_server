@@ -99,5 +99,7 @@ handle_msg(_{method: "initialize", id: Id, params: Params} :< Msg,
     server_capabilities(ServerCapabilities),
     Response = _{id: Id,
                  result: _{capabilities: ServerCapabilities} }.
-Handle_Msg(_{Method: "initialized", id: Id} :< Msg) :-
+handle_msg(_{method: "initialized", id: Id} :< Msg, _{id: Id, result: true}) :-
     debug(server, "initialized ~w: ~w", [Id, Msg]).
+handle_msg(_{id: Id} :< Msg, _{id: Id, result: true}) :-
+    debug(server, "Message ~w", [Msg]).
