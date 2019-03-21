@@ -52,3 +52,52 @@ lsp_request(_{headers: Headers, body: Body}) -->
     JsonCodes,
     { open_codes_stream(JsonCodes, JsonStream),
       json_read_dict(JsonStream, Body, []) }.
+
+% Handling messages
+
+server_capabilities(
+    _{textDocumentSync: _{openClose: true,
+                          change: 3, %incremental
+                          willSave: true,
+                          willSaveWaitUntil: false, %???
+                          save: _{includeText: true}},
+      hoverProvider: true,
+      completionProvider: _{resolveProvider: true,
+                            triggerCharacters: []},
+      definitionProvider: true,
+      implementationProvider: _{documentSelector: [_{language: "prolog"}],
+                                id: prologImplementation},
+      referencesProvider: true,
+      documentHighlightProvider: true,
+      documentSymbolProvider: true,
+      workspaceSymbolProvider: true,
+      codeActionProvider: false,
+      codeLensProvider: false,
+      documentFormattingProvider:false,
+      documentOnTypeFormattingProvider: false,
+      renameProvider: false,
+      documentLinkProvider: false, % ???
+      colorProvider: _{documentSelector: [_{language: "prolog"}],
+                       id: prologColor},
+      foldingRangeProvider: false,
+      executeCommandProvider: _{commands: ["query", "assert"]},
+      workspace: _{workspaceFolders: _{supported: true,
+                                       changeNotifications: true}}
+     }
+).
+
+handle_msg(_{method: "$/cancelRequest", id: Id} :< Msg,
+          Response) :-
+    debug(server, "Cancel request ~w: Msg ~w", [Id, Msg]),
+    Response = false.
+handle_msg(_{method: "initialize", id: Id, params: Params} :< Msg,
+          Response) :-
+    _{processId: ProcId,
+      capabilities: Capabilities,
+      rootUri: RootUri} :< Params,
+    debug(server, "init ~w: ~w", [Msg, Params]),
+    server_capabilities(ServerCapabilities),
+    Response = _{id: Id,
+                 result: _{capabilities: ServerCapabilities} }.
+Handle_Msg(_{Method: "initialized", id: Id} :< Msg) :-
+    debug(server, "initialized ~w: ~w", [Id, Msg]).
