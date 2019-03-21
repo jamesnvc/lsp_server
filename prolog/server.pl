@@ -30,7 +30,11 @@ process_client(Socket) :-
 
 handle_request(StreamPair) :-
     phrase_from_stream(lsp_request(Req), StreamPair),
-    debug(server, "Request ~w", [Req]).
+    debug(server, "Request ~w", [Req]),
+    handle_request(Req, Resp),
+    atom_json_dict(JsonCodes, Resp, [as(codes)]),
+    length(JsonCodes, ContentLength),
+    format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]).
 
 % parsing
 
