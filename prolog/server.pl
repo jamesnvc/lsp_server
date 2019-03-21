@@ -6,8 +6,8 @@
                                 tcp_open_socket/3]).
 :- use_module(library(http/json), [json_read_dict/3,
                                    json_write_dict/3]).
-:- use_module(library(dcg/basics), [remainder//1,
-                                    string_without//2]).
+:- use_module(library(dcg/basics), [string_without//2]).
+:- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 
 create_server(Port) :-
     tcp_socket(Socket),
@@ -44,7 +44,11 @@ headers([Header|Headers]) -->
 headers([]) --> [].
 
 lsp_request(_{headers: Headers, body: Body}) -->
-    headers(Headers), "\r\n",
-    remainder(JsonCodes),
+    headers(HeadersList), "\r\n",
+    { list_to_assoc(HeadersList, Headers),
+      get_assoc("Content-Length", Headers, LengthS),
+      number_string(Length, LengthS),
+      length(JsonCodes, Length) },
+    JsonCodes,
     { open_codes_stream(JsonCodes, JsonStream),
       json_read_dict(JsonStream, Body, []) }.
