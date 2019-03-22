@@ -1,29 +1,41 @@
 :- module(server, []).
 
+:- use_module(library(socket), [tcp_socket/1,
+                                tcp_bind/2,
+                                tcp_listen/2,
+                                tcp_open_socket/3]).
 :- use_module(library(http/json), [json_read_dict/3,
                                    json_write_dict/3,
                                    atom_json_dict/3]).
 :- use_module(library(dcg/basics), [string_without//2]).
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 
-main :-
-    stream_pair(Stream, user_input, user_output),
-    debug(server),
-    dispatch(Stream).
+create_server(Port) :-
+    tcp_socket(Socket),
+    tcp_bind(Socket, Port),
+    tcp_listen(Socket, 5),
+    tcp_open_socket(Socket, AcceptPair),
+    dispatch(AcceptPair).
 
-dispatch(Stream) :-
-    wait_for_input([Stream], _, infinite),
-    handle_request(Stream),
-    dispatch(Stream).
+dispatch(AcceptPair) :-
+    tcp_accept(AcceptPair, Socket, _Peer),
+    thread_create(process_client(Socket), _ThreadId, [detached(true)]),
+    dispatch(AcceptPair).
+
+process_client(Socket) :-
+    setup_call_cleanup(
+        tcp_open_socket(Socket, StreamPair),
+        handle_request(StreamPair),
+        close(StreamPair)
+    ).
 
 handle_request(StreamPair) :-
     phrase_from_stream(lsp_request(Req), StreamPair),
     debug(server, "Request ~w", [Req]),
     handle_msg(Req, Resp),
-    Resp -> ( atom_json_dict(JsonCodes, Resp, [as(codes)]),
-              length(JsonCodes, ContentLength),
-              format(StreamPair, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]) )
-    ; true.
+    atom_json_dict(JsonCodes, Resp, [as(codes)]),
+    length(JsonCodes, ContentLength),
+    format(StreamPair, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]).
 
 % parsing
 
@@ -65,7 +77,7 @@ server_capabilities(
       documentSymbolProvider: true,
       workspaceSymbolProvider: true,
       codeActionProvider: false,
-      codeLensProvider: _{resolveProvider: true},
+      codeLensProvider: false,
       documentFormattingProvider:false,
       documentOnTypeFormattingProvider: false,
       renameProvider: false,
@@ -79,22 +91,20 @@ server_capabilities(
      }
 ).
 
-handle_msg(_{method: "$/cancelRequest", id: Id} :< Msg, false) :-
-    debug(server, "Cancel request ~w: Msg ~w", [Id, Msg]).
+handle_msg(_{method: "$/cancelRequest", id: Id} :< Msg,
+          Response) :-
+    debug(server, "Cancel request ~w: Msg ~w", [Id, Msg]),
+    Response = false.
 handle_msg(_{method: "initialize", id: Id, params: Params} :< Msg,
           Response) :-
     _{processId: ProcId,
-      capabilities: ClientCapabilities,
+      capabilities: Capabilities,
       rootUri: RootUri} :< Params,
     debug(server, "init ~w: ~w", [Msg, Params]),
     server_capabilities(ServerCapabilities),
     Response = _{id: Id,
                  result: _{capabilities: ServerCapabilities} }.
-handle_msg(_{method: "initialized", id: Id} :< Msg, false) :-
+handle_msg(_{method: "initialized", id: Id} :< Msg, _{id: Id, result: true}) :-
     debug(server, "initialized ~w: ~w", [Id, Msg]).
-handle_msg(_{method: "shutdown", id: Id} :< Msg, _{id: Id, result: null}) :-
-    debug(server, "shut down for client ~w", [Msg]).
-handle_msg(_{method: "exit"} :< Msg, false) :-
-    debug(server, "now can exit", []).
 handle_msg(_{id: Id} :< Msg, _{id: Id, result: true}) :-
     debug(server, "Message ~w", [Msg]).
