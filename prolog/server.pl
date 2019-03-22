@@ -11,16 +11,20 @@
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 
 main :-
+    set_prolog_flag(debug_on_error, false),
+    set_prolog_flag(toplevel_prompt, ''),
     current_prolog_flag(argv, Args),
     debug(server),
     debug(server, "args ~w", [Args]),
     start(Args).
 
 start([socket, PortS]) :-
-    atom_number(PortS, Port),
+    atom_number(PortS, Port), !,
+    debug(server, "Starting socket client on port ~w", [Port]),
     create_server(Port).
-start([stdio]) :-
-    debug(server, "Starting stdio client", []).
+start([stdio]) :- !,
+    debug(server, "Starting stdio client", []),
+    stdio_server.
 start(Args) :-
     debug(server, "Unknown args ~w", [Args]).
 
@@ -45,6 +49,27 @@ process_client(Socket) :-
     ).
 
 % stdio server
+
+stdio_server :-
+    current_input(In),
+    set_stream(In, buffer(full)),
+    set_stream(In, newline(posix)),
+    set_stream(In, tty(false)),
+    set_stream(In, representation_errors(error)),
+    stdio_handler(In).
+stdio_handler(In) :-
+    wait_for_input([In], _, infinite),
+    fill_buffer(In),
+    read_pending_codes(In, Codes, Tail),
+    ( Tail == [] -> true
+    ; ( debug(server, "input: '~w'", [Codes]),
+        Tail = [],
+        open_codes_stream(Codes, Stream),
+        current_output(Out),
+        stream_pair(StreamPair, Stream, Out),
+        handle_request(StreamPair),
+        flush_output(Out),
+        stdio_handler(In) ) ).
 
 % general handling stuff
 
@@ -117,10 +142,10 @@ server_capabilities(
 ).
 
 handle_msg(Msg, false) :-
-    _{method: "$/cancelRequest", id: Id} :< Msg,
+    _{method: "$/cancelRequest", id: Id} :< Msg, !,
     debug(server, "Cancel request ~w: Msg ~w", [Id, Msg]).
 handle_msg(Msg, Response) :-
-    _{method: "initialize", id: Id, params: Params} :< Msg,
+    _{method: "initialize", id: Id, params: Params} :< Msg, !,
     _{processId: ProcId,
       capabilities: Capabilities,
       rootUri: RootUri} :< Params,
@@ -129,7 +154,7 @@ handle_msg(Msg, Response) :-
     Response = _{id: Id,
                  result: _{capabilities: ServerCapabilities} }.
 handle_msg(Msg, _{id: Id, result: true}) :-
-    _{method: "initialized", id: Id} :< Msg,
+    _{method: "initialized", id: Id} :< Msg, !,
     debug(server, "initialized ~w: ~w", [Id, Msg]).
 handle_msg(Msg, _{id: Id, result: true}) :-
     _{id: Id} :< Msg,
