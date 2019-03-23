@@ -9,6 +9,8 @@
                                    atom_json_dict/3]).
 :- use_module(library(dcg/basics), [string_without//2]).
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
+:- use_module(library(prolog_xref)).
+:- use_module(library(prolog_source), [read_source_term_at_location/3]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -62,18 +64,17 @@ stdio_handler(Extra-ExtraTail, In) :-
     fill_buffer(In),
     read_pending_codes(In, ReadCodes, Tail),
     ( Tail == [] -> true
-    ; ( debug(server, "input: '~w'", [ReadCodes]),
-        ( Tail = [],
-          ExtraTail = ReadCodes,
-          Codes = Extra,
-          debug(server, "input str: ~s", [Codes]),
-          open_codes_stream(Codes, Stream),
-          current_output(Out),
-          stream_pair(StreamPair, Stream, Out),
-          handle_request(StreamPair),
-          flush_output(Out),
-          stdio_handler(A-A, In) )
-      ; ( stdio_handler(ReadCodes-Tail, In))) ).
+    ; ( Tail = [],
+        ExtraTail = ReadCodes,
+        Codes = Extra,
+        debug(server(high), "input str: ~s", [Codes]),
+        open_codes_stream(Codes, Stream),
+        current_output(Out),
+        stream_pair(StreamPair, Stream, Out),
+        handle_request(StreamPair),
+        flush_output(Out),
+        stdio_handler(A-A, In) )
+    ; ( stdio_handler(ReadCodes-Tail, In)) ).
 
 % general handling stuff
 
@@ -85,9 +86,9 @@ send_message(Stream, Msg) :-
 
 handle_request(StreamPair) :-
     phrase_from_stream(lsp_request(Req), StreamPair),
-    debug(server, "Request ~w", [Req.body]),
+    debug(server(high), "Request ~w", [Req.body]),
     handle_msg(Req.body.method, Req.body, Resp),
-    debug(server, "response ~w", [Resp]),
+    debug(server(high), "response ~w", [Resp]),
     ( is_dict(Resp) -> send_message(StreamPair, Resp) ; true ).
 
 % parsing
@@ -120,7 +121,7 @@ server_capabilities(
                           willSave: true,
                           willSaveWaitUntil: false, %???
                           save: _{includeText: true}},
-      hoverProvider: true,
+      hoverProvider: true, % need to refine more
       completionProvider: _{resolveProvider: true,
                             triggerCharacters: []},
       definitionProvider: true,
@@ -145,21 +146,37 @@ server_capabilities(
 ).
 
 % messages (with a response)
-handle_msg("initialize", Msg, Response) :-
+handle_msg("initialize", Msg,
+           _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
     _{id: Id, params: Params} :< Msg, !,
-    _{processId: ProcId,
-      capabilities: Capabilities,
-      rootUri: RootUri} :< Params,
     debug(server, "init ~w: ~w", [Msg, Params]),
-    server_capabilities(ServerCapabilities),
-    Response = _{id: Id,
-                 result: _{capabilities: ServerCapabilities} }.
+    server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
     debug(server, "recieved shutdown message", []).
+% [TODO] working showing the source, now need get some more useful info
+handle_msg("textDocument/hover", Msg, Response) :-
+    _{params: _{position: _{character: Char, line: Line0},
+                textDocument: _{uri: Doc}}, id: Id} :< Msg,
+    debug(server, "Hover at ~w:~w in ~w", [Line0, Char, Doc]),
+    atom_concat('file://', Path, Doc),
+    Line1 is Line0 + 1,
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        ( read_source_term_at_location(Stream, Terms, [line(Line1)]),
+          first_clause(Terms, Term),
+          format(string(S), "~w", [Term]),
+          Response = _{id: Id, result: _{contents: S}}
+        ),
+        close(Stream)
+    ).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, false) :-
-    debug(server, "open doc ~w", [Msg]).
+    _{params: _{textDocument: TextDoc}} :< Msg,
+    _{uri: FileUri} :< TextDoc,
+    atom_concat('file://', Path, FileUri),
+    debug(server, "open doc ~w", [Path]),
+    xref_source(Path).
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
 handle_msg("$/cancelRequest", Msg, false) :-
@@ -173,3 +190,9 @@ handle_msg(_, Msg, _{id: Id, error: _{code: -32603, message: "Unimplemented"}}) 
     debug(server, "unknown message ~w", [Msg]).
 handle_msg(_, Msg, false) :-
     debug(server, "unknown notification ~w", [Msg]).
+
+
+% helpers
+
+first_clause((Term, _), Term) :- !.
+first_clause(Term, Term).
