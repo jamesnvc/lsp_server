@@ -56,20 +56,24 @@ stdio_server :-
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
-    stdio_handler(In).
-stdio_handler(In) :-
+    stdio_handler(A-A, In).
+stdio_handler(Extra-ExtraTail, In) :-
     wait_for_input([In], _, infinite),
     fill_buffer(In),
-    read_pending_codes(In, Codes, Tail),
+    read_pending_codes(In, ReadCodes, Tail),
     ( Tail == [] -> true
-    ; ( debug(server, "input: '~w'", [Codes]),
-        Tail = [],
-        open_codes_stream(Codes, Stream),
-        current_output(Out),
-        stream_pair(StreamPair, Stream, Out),
-        handle_request(StreamPair),
-        flush_output(Out),
-        stdio_handler(In) ) ).
+    ; ( debug(server, "input: '~w'", [ReadCodes]),
+        ( Tail = [],
+          ExtraTail = ReadCodes,
+          Codes = Extra,
+          debug(server, "input str: ~s", [Codes]),
+          open_codes_stream(Codes, Stream),
+          current_output(Out),
+          stream_pair(StreamPair, Stream, Out),
+          handle_request(StreamPair),
+          flush_output(Out),
+          stdio_handler(A-A, In) )
+      ; ( stdio_handler(ReadCodes-Tail, In))) ).
 
 % general handling stuff
 
@@ -82,7 +86,7 @@ send_message(Stream, Msg) :-
 handle_request(StreamPair) :-
     phrase_from_stream(lsp_request(Req), StreamPair),
     debug(server, "Request ~w", [Req.body]),
-    handle_msg(Req.body, Resp),
+    handle_msg(Req.body.method, Req.body, Resp),
     debug(server, "response ~w", [Resp]),
     ( is_dict(Resp) -> send_message(StreamPair, Resp) ; true ).
 
@@ -120,8 +124,8 @@ server_capabilities(
       completionProvider: _{resolveProvider: true,
                             triggerCharacters: []},
       definitionProvider: true,
-      implementationProvider: _{documentSelector: [_{language: "prolog"}],
-                                id: prologImplementation},
+      declarationProvider: true,
+      implementationProvider: true,
       referencesProvider: true,
       documentHighlightProvider: true,
       documentSymbolProvider: true,
@@ -132,8 +136,7 @@ server_capabilities(
       documentOnTypeFormattingProvider: false,
       renameProvider: false,
       documentLinkProvider: false, % ???
-      colorProvider: _{documentSelector: [_{language: "prolog"}],
-                       id: prologColor},
+      colorProvider: true,
       foldingRangeProvider: false,
       executeCommandProvider: _{commands: ["query", "assert"]},
       workspace: _{workspaceFolders: _{supported: true,
@@ -141,11 +144,9 @@ server_capabilities(
      }
 ).
 
-handle_msg(Msg, false) :-
-    _{method: "$/cancelRequest", id: Id} :< Msg, !,
-    debug(server, "Cancel request ~w: Msg ~w", [Id, Msg]).
-handle_msg(Msg, Response) :-
-    _{method: "initialize", id: Id, params: Params} :< Msg, !,
+% messages (with a response)
+handle_msg("initialize", Msg, Response) :-
+    _{id: Id, params: Params} :< Msg, !,
     _{processId: ProcId,
       capabilities: Capabilities,
       rootUri: RootUri} :< Params,
@@ -153,9 +154,22 @@ handle_msg(Msg, Response) :-
     server_capabilities(ServerCapabilities),
     Response = _{id: Id,
                  result: _{capabilities: ServerCapabilities} }.
-handle_msg(Msg, _{id: Id, result: true}) :-
-    _{method: "initialized", id: Id} :< Msg, !,
-    debug(server, "initialized ~w: ~w", [Id, Msg]).
-handle_msg(Msg, _{id: Id, result: true}) :-
+handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
-    debug(server, "Message ~w", [Msg]).
+    debug(server, "recieved shutdown message", []).
+% notifications (no response)
+handle_msg("textDocument/didOpen", Msg, false) :-
+    debug(server, "open doc ~w", [Msg]).
+handle_msg("initialized", Msg, false) :-
+    debug(server, "initialized ~w", [Msg]).
+handle_msg("$/cancelRequest", Msg, false) :-
+    debug(server, "Cancel request Msg ~w", [Msg]).
+handle_msg("exit", _Msg, false) :-
+    debug(server, "recieved exit, shutting down", []),
+    halt.
+% wildcard
+handle_msg(_, Msg, _{id: Id, error: _{code: -32603, message: "Unimplemented"}}) :-
+    _{id: Id} :< Msg, !,
+    debug(server, "unknown message ~w", [Msg]).
+handle_msg(_, Msg, false) :-
+    debug(server, "unknown notification ~w", [Msg]).
