@@ -107,7 +107,6 @@ lsp_request(_{headers: Headers, body: Body}) -->
     json_chars(Length, JsonCodes),
     { ground(JsonCodes),
       open_codes_stream(JsonCodes, JsonStream),
-      debug(server, "open json stream", []),
       json_read_dict(JsonStream, Body, []) }.
 
 % Handling messages
@@ -154,13 +153,13 @@ handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
 handle_msg("textDocument/hover", Msg, Response) :-
     _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
-    debug(server, "Hover at ~w:~w in ~w", [Line0, Char0, Doc]),
+    debug(server(hover), "Hover at ~w:~w in ~w", [Line0, Char0, Doc]),
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
     setup_call_cleanup(
         open(Path, read, Stream, []),
         catch(help_at_position(Stream, Line1, Char0, Id, Response),
-              Err, (debug(server, "error getting help ~w", [Err]),
+              Err, (debug(server(hover), "error getting help ~w", [Err]),
                     Response = _{id: Id, result: null})),
         close(Stream)
     ).
@@ -190,7 +189,6 @@ handle_msg(_, Msg, false) :-
 
 help_at_position(Stream, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
     clause_at_position(Stream, Clause, line_char(Line1, Char0)),
-    debug(server, "clause at ~w:~w: ~w", [Line1, Char0, Clause]),
     predicate_help(Clause, S), !.
 help_at_position(_, _, _, Id, _{id: Id, result: null}).
 
@@ -258,6 +256,10 @@ find_containing_term(Offset, [Term|_], [P|_], Term, P) :-
 find_containing_term(Offset, [Term|_], [PP|_], Term, P) :-
     PP = parentheses_term_position(F, T, P),
     between(F, T, Offset), !.
+find_containing_term(Offset, [BTerm|_], [BP|_], Term, P) :-
+    BP = brace_term_position(F, T, P),
+    {Term} = BTerm,
+    between(F, T, Offset).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
 
