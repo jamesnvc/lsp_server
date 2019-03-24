@@ -13,6 +13,7 @@
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help), [help_html/3, help_objects/3]).
 :- use_module(library(lynx/html_text), [html_text/1]).
+:- use_module(library(utf8), [utf8_codes//1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -38,6 +39,8 @@ stdio_server :-
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
+    current_output(Out),
+    set_stream(Out, encoding(utf8)),
     stdio_handler(A-A, In).
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
@@ -65,7 +68,8 @@ handle_requests(_, T, T).
 send_message(Stream, Msg) :-
     put_dict(jsonrpc, Msg, "2.0", VersionedMsg),
     atom_json_dict(JsonCodes, VersionedMsg, [as(codes)]),
-    length(JsonCodes, ContentLength),
+    phrase(utf8_codes(JsonCodes), UTF8Codes),
+    length(UTF8Codes, ContentLength),
     format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]),
     flush_output(Stream).
 
