@@ -20,35 +20,12 @@ main :-
     debug(server, "args ~w", [Args]),
     start(Args).
 
-start([socket, PortS]) :-
-    atom_number(PortS, Port), !,
-    debug(server, "Starting socket client on port ~w", [Port]),
-    create_server(Port).
 start([stdio]) :- !,
     debug(server, "Starting stdio client", []),
     stdio_server.
 start(Args) :-
     debug(server, "Unknown args ~w", [Args]).
 
-% socket server
-create_server(Port) :-
-    tcp_socket(Socket),
-    tcp_bind(Socket, Port),
-    tcp_listen(Socket, 5),
-    tcp_open_socket(Socket, AcceptPair),
-    dispatch(AcceptPair).
-
-dispatch(AcceptPair) :-
-    tcp_accept(AcceptPair, Socket, _Peer),
-    thread_create(process_client(Socket), _ThreadId, [detached(true)]),
-    dispatch(AcceptPair).
-
-process_client(Socket) :-
-    setup_call_cleanup(
-        tcp_open_socket(Socket, StreamPair),
-        handle_request(StreamPair),
-        close(StreamPair)
-    ).
 
 % stdio server
 
