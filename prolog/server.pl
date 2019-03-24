@@ -173,3 +173,59 @@ handle_msg(_, Msg, false) :-
 
 first_clause((Term, _), Term) :- !.
 first_clause(Term, Term).
+
+linechar_offset(Stream, line_char(Line1, Char1), Offset) :-
+    seek(Stream, 0, bof, _),
+    seek_to_line(Stream, Line1),
+    seek(Stream, Char1, current, Offset).
+
+seek_to_line(Stream, N) :-
+    N > 1, !,
+    skip(Stream, 0'\n),
+    NN is N - 1,
+    seek_to_line(Stream, NN).
+seek_to_line(_, _).
+
+clause_at_position(Stream, Clause, Start) :-
+    linechar_offset(Stream, Start, Offset), !,
+    clause_at_position(Stream, Clause, Start, Offset).
+clause_at_position(Stream, Clause, line_char(Line1, Char), Here) :-
+    read_source_term_at_location(Stream, Terms, [line(Line1),
+                                                 subterm_positions(SubPos),
+                                                 error(Error)]),
+    extract_clause_at_position(Stream, Terms, line_char(Line1, Char), Here,
+                               SubPos, Error, Clause).
+
+extract_clause_at_position(Stream, _, line_char(Line1, Char), Here, _, Error, Clause) :-
+    nonvar(Error), !, Line1 > 1,
+    LineBack is Line1 - 1,
+    clause_at_position(Stream, Clause, line_char(LineBack, Char), Here).
+extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
+    find_clause(Terms, Here, SubPos, Clause).
+
+find_clause(Term, Offset, term_position(_, _, FF, FT, _), Name/Arity) :-
+    between(FF, FT, Offset), !,
+    functor(Term, Name, Arity).
+find_clause(Term, Offset, term_position(F, T, _, _, SubPoses), Clause) :-
+    between(F, T, Offset), !,
+    Term =.. [_|SubTerms],
+    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
+    find_clause(SubTerm, Offset, SubPos, Clause).
+find_clause(Term, Offset, paretheses_term_position(F, T, SubPoses), Clause) :-
+    between(F, T, Offset),
+    parens_list(Term, SubTerms),
+    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
+    find_clause(SubTerm, Offset, SubPos, Clause).
+
+find_containing_term(Offset, [Term|_], [P|_], Term, P) :-
+    P = term_position(F, T, _, _, _),
+    between(F, T, Offset), !.
+find_containing_term(Offset, [Term|_], [PP|_], Term, P) :-
+    PP = parentheses_term_position(F, T, P),
+    between(F, T, Offset), !.
+find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
+    find_containing_term(Offset, Ts, Ps, T, P).
+
+parens_list(','(A, RstP), [A|RstL]) :- !,
+    parens_list(RstP, RstL).
+parens_list(A, [A]).
