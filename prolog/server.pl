@@ -36,6 +36,8 @@ stdio_server :-
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
     stdio_handler(A-A, In).
+% [TODO] add multithreading? Guess that will also need a message queue
+% to write to stdout
 stdio_handler(Extra-ExtraTail, In) :-
     wait_for_input([In], _, infinite),
     fill_buffer(In),
