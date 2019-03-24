@@ -42,18 +42,20 @@ stdio_handler(Extra-ExtraTail, In) :-
     wait_for_input([In], _, infinite),
     fill_buffer(In),
     read_pending_codes(In, ReadCodes, Tail),
-    ( Tail == [] -> true
-    ; ( Tail = [],
+    ( Tail == []
+    -> true
+    ; ( current_output(Out),
         ExtraTail = ReadCodes,
-        Codes = Extra,
-        debug(server(high), "input str: ~s", [Codes]),
-        open_codes_stream(Codes, Stream),
-        current_output(Out),
-        stream_pair(StreamPair, Stream, Out),
-        handle_request(StreamPair),
-        flush_output(Out),
-        stdio_handler(A-A, In) )
-    ; ( stdio_handler(ReadCodes-Tail, In)) ).
+        handle_requests(Out, Extra, Remainder),
+        stdio_handler(Remainder-Tail, In) )
+    ).
+
+handle_requests(Out, In, Tail) :-
+    handle_request(Out, In, Rest), !,
+    ( var(Rest)
+    -> Tail = Rest
+    ; handle_requests(Out, Rest, Tail) ).
+handle_requests(_, T, T).
 
 % general handling stuff
 
@@ -61,14 +63,23 @@ send_message(Stream, Msg) :-
     put_dict(jsonrpc, Msg, "2.0", VersionedMsg),
     atom_json_dict(JsonCodes, VersionedMsg, [as(codes)]),
     length(JsonCodes, ContentLength),
-    format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]).
+    format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]),
+    flush_output(Stream).
 
-handle_request(StreamPair) :-
-    phrase_from_stream(lsp_request(Req), StreamPair),
+handle_request(OutStream, Input, Rest) :-
+    phrase(lsp_request(Req), Input, Rest),
     debug(server(high), "Request ~w", [Req.body]),
-    handle_msg(Req.body.method, Req.body, Resp),
-    debug(server(high), "response ~w", [Resp]),
-    ( is_dict(Resp) -> send_message(StreamPair, Resp) ; true ).
+    catch(
+        ( handle_msg(Req.body.method, Req.body, Resp),
+          debug(server(high), "response ~w", [Resp]),
+          ( is_dict(Resp) -> send_message(OutStream, Resp) ; true ) ),
+        Err,
+        ( debug(server, "error handling msg ~w", [Err]),
+          get_dict(id, Req.body, Id),
+          send_message(OutStream, _{id: Id,
+                                    error: _{code: -32001,
+                                             message: "server error"}})
+        )).
 
 % parsing
 
@@ -82,14 +93,18 @@ headers([Header|Headers]) -->
     header(Header), "\r\n",
     headers(Headers).
 
+json_chars(0, []) --> [].
+json_chars(N, [C|Cs]) --> [C], { succ(Nn, N) }, json_chars(Nn, Cs).
+
 lsp_request(_{headers: Headers, body: Body}) -->
     headers(HeadersList),
     { list_to_assoc(HeadersList, Headers),
       get_assoc("Content-Length", Headers, LengthS),
-      number_string(Length, LengthS),
-      length(JsonCodes, Length) },
-    JsonCodes,
-    { open_codes_stream(JsonCodes, JsonStream),
+      number_string(Length, LengthS) },
+    json_chars(Length, JsonCodes),
+    { ground(JsonCodes),
+      open_codes_stream(JsonCodes, JsonStream),
+      debug(server, "open json stream", []),
       json_read_dict(JsonStream, Body, []) }.
 
 % Handling messages
