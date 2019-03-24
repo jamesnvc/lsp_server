@@ -11,9 +11,12 @@
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
+:- use_module(library(help), [help_html/3, help_objects/3]).
+:- use_module(library(lynx/html_text), [html_text/1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
+    set_prolog_flag(report_error, true),
     set_prolog_flag(toplevel_prompt, ''),
     current_prolog_flag(argv, Args),
     debug(server),
@@ -148,20 +151,17 @@ handle_msg("initialize", Msg,
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
     debug(server, "recieved shutdown message", []).
-% [TODO] working showing the source, now need get some more useful info
 handle_msg("textDocument/hover", Msg, Response) :-
-    _{params: _{position: _{character: Char, line: Line0},
+    _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
-    debug(server, "Hover at ~w:~w in ~w", [Line0, Char, Doc]),
+    debug(server, "Hover at ~w:~w in ~w", [Line0, Char0, Doc]),
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
     setup_call_cleanup(
         open(Path, read, Stream, []),
-        ( read_source_term_at_location(Stream, Terms, [line(Line1)]),
-          first_clause(Terms, Term),
-          format(string(S), "~w", [Term]),
-          Response = _{id: Id, result: _{contents: S}}
-        ),
+        catch(help_at_position(Stream, Line1, Char0, Id, Response),
+              Err, (debug(server, "error getting help ~w", [Err]),
+                    Response = _{id: Id, result: null})),
         close(Stream)
     ).
 % notifications (no response)
@@ -187,6 +187,21 @@ handle_msg(_, Msg, false) :-
 
 
 % helpers
+
+help_at_position(Stream, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
+    clause_at_position(Stream, Clause, line_char(Line1, Char0)),
+    debug(server, "clause at ~w:~w: ~w", [Line1, Char0, Clause]),
+    predicate_help(Clause, S), !.
+help_at_position(_, _, _, Id, _{id: Id, result: null}).
+
+predicate_help(Pred, Help) :-
+    nonvar(Pred), !,
+    help_objects(Pred, exact, Matches),
+    catch(help_html(Matches, exact-exact, HtmlDoc), _, fail),
+    setup_call_cleanup(open_string(HtmlDoc, In),
+                       load_html(stream(In), Dom, []),
+                       close(In)),
+    with_output_to(string(Help), html_text(Dom)).
 
 first_clause((Term, _), Term) :- !.
 first_clause(Term, Term).
@@ -226,8 +241,11 @@ find_clause(Term, Offset, term_position(_, _, FF, FT, _), Name/Arity) :-
 find_clause(Term, Offset, term_position(F, T, _, _, SubPoses), Clause) :-
     between(F, T, Offset), !,
     Term =.. [_|SubTerms],
-    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
+    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos), !,
     find_clause(SubTerm, Offset, SubPos, Clause).
+find_clause(Term, Offset, term_position(F, T, _, _, _), Name/Arity) :-
+    between(F, T, Offset), !,
+    functor(Term, Name, Arity).
 find_clause(Term, Offset, paretheses_term_position(F, T, SubPoses), Clause) :-
     between(F, T, Offset),
     parens_list(Term, SubTerms),
