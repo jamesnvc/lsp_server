@@ -173,6 +173,7 @@ handle_msg("textDocument/didOpen", Msg, false) :-
     atom_concat('file://', Path, FileUri),
     debug(server, "open doc ~w", [Path]),
     xref_source(Path).
+handle_msg("textDocument/didSave", _, false).
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
 handle_msg("$/cancelRequest", Msg, false) :-
