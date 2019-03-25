@@ -159,13 +159,9 @@ handle_msg("textDocument/hover", Msg, Response) :-
     debug(server(hover), "Hover at ~w:~w in ~w", [Line0, Char0, Doc]),
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        catch(help_at_position(Stream, Line1, Char0, Id, Response),
-              Err, (debug(server(hover), "error getting help ~w", [Err]),
-                    Response = _{id: Id, result: null})),
-        close(Stream)
-    ).
+    catch(help_at_position(Path, Line1, Char0, Id, Response),
+          Err, (debug(server(hover), "error getting help ~w", [Err]),
+                Response = _{id: Id, result: null})).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
     atom_concat('file://', Path, Doc), !,
@@ -182,6 +178,23 @@ handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
                        format(string(GoalName), "~w/~w", [Name, Arity]) ),
             GoalLines,
             Symbols).
+handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
+    _{id: Id, params: _{textDocument: _{uri: Doc},
+                        position: _{line: Line0, character: Char0}}} :< Msg,
+    atom_concat('file://', Path, Doc),
+    succ(Line0, Line1),
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        clause_at_position(Stream, Name/Arity, line_char(Line1, Char0)),
+        close(Stream)
+    ),
+    length(FakeArgs, Arity),
+    Callable =.. [Name|FakeArgs],
+    xref_source(Path),
+    xref_defined(Path, Callable, Ref),
+    debug(server, "Ref for ~w: ~w", [Name/Arity, Ref]),
+    relative_ref_location(Doc, Callable, Ref, Location).
+handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
@@ -207,14 +220,28 @@ handle_msg(_, Msg, false) :-
 
 % helpers
 
-help_at_position(Stream, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
-    clause_at_position(Stream, Clause, line_char(Line1, Char0)),
-    predicate_help(Clause, S), !.
+relative_ref_location(Here, _, local(Line1),
+                      _{uri: Here, range: _{start: _{line: Line0, character: 1},
+                                            end: _{line: NextLine, character: 0}}}) :-
+    !, succ(Line0, Line1), succ(Line1, NextLine).
+relative_ref_location(_, Goal, imported(Path), Location) :-
+    atom_concat('file://', Path, ThereUri),
+    xref_source(Path),
+    xref_defined(Path, Goal, Loc),
+    relative_ref_location(ThereUri, Goal, Loc, Location).
+
+help_at_position(Path, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        clause_at_position(Stream, Clause, line_char(Line1, Char0)),
+        close(Stream)
+    ),
+    predicate_help(Path, Clause, S), !.
 help_at_position(_, _, _, Id, _{id: Id, result: null}).
 
-predicate_help(Pred, Help) :-
-    nonvar(Pred), !,
-    help_objects(Pred, exact, Matches),
+predicate_help(_, Pred, Help) :-
+    nonvar(Pred),
+    help_objects(Pred, exact, Matches), !,
     catch(help_html(Matches, exact-exact, HtmlDoc), _, fail),
     setup_call_cleanup(open_string(HtmlDoc, In),
                        load_html(stream(In), Dom, []),
@@ -286,6 +313,11 @@ find_containing_term(Offset, [BTerm|_], [BP|_], Term, P) :-
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
 
-parens_list(','(A, RstP), [A|RstL]) :- !,
-    parens_list(RstP, RstL).
+%! parens_list(+Term:term, -List:list) is det.
+%
+%  True when =Term= is a parethesized term (i.e. a term with the
+%  functor ',') and =List= is the equivalent list.
+%  e.g. =parens_list((foo, bar(baz), quux), [foo, bar(baz), quux]).=
+parens_list(','(A, RstP), [A|RstL]) :-
+    !, parens_list(RstP, RstL).
 parens_list(A, [A]).
