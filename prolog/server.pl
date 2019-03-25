@@ -192,7 +192,6 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
     Callable =.. [Name|FakeArgs],
     xref_source(Path),
     xref_defined(Path, Callable, Ref),
-    debug(server, "Ref for ~w: ~w", [Name/Arity, Ref]),
     relative_ref_location(Doc, Callable, Ref, Location).
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}).
 % notifications (no response)
