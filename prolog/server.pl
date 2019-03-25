@@ -166,6 +166,22 @@ handle_msg("textDocument/hover", Msg, Response) :-
                     Response = _{id: Id, result: null})),
         close(Stream)
     ).
+handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
+    _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
+    atom_concat('file://', Path, Doc), !,
+    xref_source(Path),
+    findall(Goal-Line, xref_defined(Path, Goal, local(Line)), GoalLines),
+    maplist({Doc}/[Goal-Line,
+                   _{name: GoalName, kind: 12, % function
+                     location: _{uri: Doc,
+                                 range: _{start: _{line: Line0, character: 1},
+                                          end: _{line: NextLine, character: 0}}}}
+                  ]>>( succ(Line, NextLine),
+                       succ(Line0, Line),
+                       functor(Goal, Name, Arity),
+                       format(string(GoalName), "~w/~w", [Name, Arity]) ),
+            GoalLines,
+            Symbols).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
