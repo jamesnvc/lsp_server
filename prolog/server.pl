@@ -194,6 +194,8 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
     xref_defined(Path, Callable, Ref),
     relative_ref_location(Doc, Callable, Ref, Location).
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}).
+handle_msg("textDocument/references", Msg, _{id: Msg.id, result: Locations}) :-
+    false.
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
