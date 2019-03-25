@@ -118,17 +118,16 @@ lsp_request(_{headers: Headers, body: Body}) -->
 server_capabilities(
     _{textDocumentSync: _{openClose: true,
                           change: 3, %incremental
-                          willSave: true,
-                          willSaveWaitUntil: false, %???
-                          save: _{includeText: true}},
+                          willSave: false,
+                          willSaveWaitUntil: false %???
+                          },
       hoverProvider: true, % need to refine more
-      completionProvider: _{resolveProvider: true,
-                            triggerCharacters: []},
+      completionProvider: false,
       definitionProvider: true,
       declarationProvider: true,
       implementationProvider: true,
       referencesProvider: true,
-      documentHighlightProvider: true,
+      documentHighlightProvider: false,
       documentSymbolProvider: true,
       workspaceSymbolProvider: true,
       codeActionProvider: false,
