@@ -253,6 +253,9 @@ find_clause(Term, Offset, paretheses_term_position(F, T, SubPoses), Clause) :-
     parens_list(Term, SubTerms),
     find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
     find_clause(SubTerm, Offset, SubPos, Clause).
+find_clause({SubTerm}, Offset, brace_term_position(F, T, SubPos), Clause) :-
+    between(F, T, Offset),
+    find_clause(SubTerm, Offset, SubPos, Clause).
 
 find_containing_term(Offset, [Term|_], [P|_], Term, P) :-
     P = term_position(F, T, _, _, _),
