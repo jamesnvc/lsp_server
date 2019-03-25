@@ -122,7 +122,7 @@ server_capabilities(
                           willSaveWaitUntil: false %???
                           },
       hoverProvider: true, % need to refine more
-      completionProvider: false,
+      %% completionProvider: false,
       definitionProvider: true,
       declarationProvider: true,
       implementationProvider: true,
