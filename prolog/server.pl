@@ -203,7 +203,6 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
             (xref_called(Path, Callable, By),
              xref_defined(Path, By, Ref)),
             Sources),
-    debug(server, "refs for ~w: ~w", [Clause, Sources]),
     % [TODO] xref just gives the predicates that call; need to find the actual line
     maplist({Doc}/[Caller-Loc, Location]>>relative_ref_location(Doc, Caller, Loc, Location),
             Sources,
