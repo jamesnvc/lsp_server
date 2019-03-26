@@ -252,6 +252,7 @@ help_at_position(Path, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
     predicate_help(Path, Clause, S), !.
 help_at_position(_, _, _, Id, _{id: Id, result: null}).
 
+% [TODO] use xref_comment to get docs for local predicates
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),
     help_objects(Pred, exact, Matches), !,
