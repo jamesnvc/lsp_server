@@ -1,13 +1,13 @@
 * Prolog Language server
 
-Testing
+Still a heavy work-in-progress.
+
+To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
 
 #+begin_src emacs-lisp
-(setq swipl-path (expand-file-name "~/.swivm/versions/8.1.0/bin/swipl"))
-
 (lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection (list swipl-path
-                                                              "-s" "/home/james/Projects/prolog-lsp/prolog/server.pl" "-g" "main" "-t" "halt" "--" "stdio"))
+ (make-lsp-client :new-connection (lsp-stdio-connection (list "swipl"
+                                                              "-s" "~/Projects/prolog-lsp/prolog/server.pl" "-g" "main" "-t" "halt" "--" "stdio"))
                   :major-modes '(prolog-mode)
                   :priority 1
                   :multi-root t
