@@ -183,11 +183,7 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
                         position: _{line: Line0, character: Char0}}} :< Msg,
     atom_concat('file://', Path, Doc),
     succ(Line0, Line1),
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        clause_at_position(Stream, Name/Arity, line_char(Line1, Char0)),
-        close(Stream)
-    ),
+    clause_in_file_at_position(Name/Arity, Path, line_char(Line1, Char0)),
     name_callable(Name/Arity, Callable),
     xref_source(Path),
     xref_defined(Path, Callable, Ref),
