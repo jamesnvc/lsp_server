@@ -188,14 +188,31 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
         clause_at_position(Stream, Name/Arity, line_char(Line1, Char0)),
         close(Stream)
     ),
-    length(FakeArgs, Arity),
-    Callable =.. [Name|FakeArgs],
+    name_callable(Name/Arity, Callable),
     xref_source(Path),
     xref_defined(Path, Callable, Ref),
     relative_ref_location(Doc, Callable, Ref, Location).
-handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}).
-handle_msg("textDocument/references", Msg, _{id: Msg.id, result: Locations}) :-
-    false.
+handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}) :- !.
+handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
+    debug(server, "searching for refs ~w", [Msg]),
+    _{id: Id, params: _{textDocument: _{uri: Doc},
+                        context: _,
+                        position: _{line: Line0, character: Char0}}} :< Msg,
+    atom_concat('file://', Path, Doc),
+    succ(Line0, Line1),
+    clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
+    name_callable(Clause, Callable),
+    xref_source(Path),
+    findall(By-Ref,
+            (xref_called(Path, Callable, By),
+             xref_defined(Path, By, Ref)),
+            Sources),
+    debug(server, "refs for ~w: ~w", [Clause, Sources]),
+    % [TODO] xref just gives the predicates that call; need to find the actual line
+    maplist({Doc}/[Caller-Loc, Location]>>relative_ref_location(Doc, Caller, Loc, Location),
+            Sources,
+            Locations), !.
+handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
@@ -221,6 +238,10 @@ handle_msg(_, Msg, false) :-
 
 % helpers
 
+name_callable(Name/Arity, Callable) :-
+    length(FakeArgs, Arity),
+    Callable =.. [Name|FakeArgs], !.
+
 relative_ref_location(Here, _, local(Line1),
                       _{uri: Here, range: _{start: _{line: Line0, character: 1},
                                             end: _{line: NextLine, character: 0}}}) :-
@@ -232,11 +253,7 @@ relative_ref_location(_, Goal, imported(Path), Location) :-
     relative_ref_location(ThereUri, Goal, Loc, Location).
 
 help_at_position(Path, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        clause_at_position(Stream, Clause, line_char(Line1, Char0)),
-        close(Stream)
-    ),
+    clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     predicate_help(Path, Clause, S), !.
 help_at_position(_, _, _, Id, _{id: Id, result: null}).
 
@@ -263,6 +280,13 @@ seek_to_line(Stream, N) :-
     NN is N - 1,
     seek_to_line(Stream, NN).
 seek_to_line(_, _).
+
+clause_in_file_at_position(Clause, Path, Position) :-
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        clause_at_position(Stream, Clause, Position),
+        close(Stream)
+    ).
 
 clause_at_position(Stream, Clause, Start) :-
     linechar_offset(Stream, Start, Offset), !,
