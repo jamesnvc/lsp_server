@@ -242,6 +242,7 @@ called_at(Path, Callable, Sources) :-
             Sources).
 :- endif.
 
+name_callable(Name/0, Name) :- !.
 name_callable(Name/Arity, Callable) :-
     length(FakeArgs, Arity),
     Callable =.. [Name|FakeArgs], !.
@@ -310,6 +311,9 @@ extract_clause_at_position(Stream, _, line_char(Line1, Char), Here, _, Error, Cl
 extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
     find_clause(Terms, Here, SubPos, Clause).
 
+find_clause(Term, Offset, F-T, Term/0) :-
+    between(F, T, Offset), !,
+    atom(Term).
 find_clause(Term, Offset, term_position(_, _, FF, FT, _), Name/Arity) :-
     between(FF, FT, Offset), !,
     functor(Term, Name, Arity).
@@ -330,6 +334,8 @@ find_clause({SubTerm}, Offset, brace_term_position(F, T, SubPos), Clause) :-
     between(F, T, Offset),
     find_clause(SubTerm, Offset, SubPos, Clause).
 
+find_containing_term(Offset, [Term|_], [F-T|_], Term, F-T) :-
+    between(F, T, Offset).
 find_containing_term(Offset, [Term|_], [P|_], Term, P) :-
     P = term_position(F, T, _, _, _),
     between(F, T, Offset), !.
