@@ -346,12 +346,3 @@ find_containing_term(Offset, [BTerm|_], [BP|_], Term, P) :-
     between(F, T, Offset).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
-
-%! parens_list(+Term:term, -List:list) is det.
-%
-%  True when =Term= is a parethesized term (i.e. a term with the
-%  functor ',') and =List= is the equivalent list.
-%  e.g. =parens_list((foo, bar(baz), quux), [foo, bar(baz), quux]).=
-parens_list(','(A, RstP), [A|RstL]) :-
-    !, parens_list(RstP, RstL).
-parens_list(A, [A]).
