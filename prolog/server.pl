@@ -325,11 +325,9 @@ find_clause(Term, Offset, term_position(F, T, _, _, SubPoses), Clause) :-
 find_clause(Term, Offset, term_position(F, T, _, _, _), Name/Arity) :-
     between(F, T, Offset), !,
     functor(Term, Name, Arity).
-find_clause(Term, Offset, paretheses_term_position(F, T, SubPoses), Clause) :-
+find_clause(Term, Offset, parentheses_term_position(F, T, SubPoses), Clause) :-
     between(F, T, Offset),
-    parens_list(Term, SubTerms),
-    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
-    find_clause(SubTerm, Offset, SubPos, Clause).
+    find_clause(Term, Offset, SubPoses, Clause).
 find_clause({SubTerm}, Offset, brace_term_position(F, T, SubPos), Clause) :-
     between(F, T, Offset),
     find_clause(SubTerm, Offset, SubPos, Clause).
