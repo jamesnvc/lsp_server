@@ -2,14 +2,21 @@
 
 Still a heavy work-in-progress.
 
+Currently supports showing documentation on hover, go to definition, go to callers, and listing defined symbols in the file.
+
 To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
 
 #+begin_src emacs-lisp
+(setq prolog-lsp-server-path (expand-file-name "~/Projects/prolog-lsp/prolog/server.pl"))
+
 (lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection (list "swipl"
-                                                              "-s" "~/Projects/prolog-lsp/prolog/server.pl" "-g" "main" "-t" "halt" "--" "stdio"))
-                  :major-modes '(prolog-mode)
-                  :priority 1
-                  :multi-root t
-                  :server-id 'prolog-ls))
+ (make-lsp-client
+   :new-connection (lsp-stdio-connection (list "swipl"
+                                               "-s" prolog-lsp-server-path
+                                               "-g" "main" "-t" "halt"
+                                               "--" "stdio"))
+   :major-modes '(prolog-mode)
+   :priority 1
+   :multi-root t
+   :server-id 'prolog-ls))
 #+end_src
