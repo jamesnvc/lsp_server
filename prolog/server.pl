@@ -121,7 +121,7 @@ server_capabilities(
                           willSave: false,
                           willSaveWaitUntil: false %???
                           },
-      hoverProvider: true, % need to refine more
+      hoverProvider: true,
       %% completionProvider: false,
       definitionProvider: true,
       declarationProvider: true,
@@ -190,7 +190,6 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
     relative_ref_location(Doc, Callable, Ref, Location).
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
-    debug(server, "searching for refs ~w", [Msg]),
     _{id: Id, params: _{textDocument: _{uri: Doc},
                         context: _,
                         position: _{line: Line0, character: Char0}}} :< Msg,
