@@ -199,11 +199,7 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     name_callable(Clause, Callable),
     xref_source(Path),
-    findall(By-Ref,
-            (xref_called(Path, Callable, By),
-             xref_defined(Path, By, Ref)),
-            Sources),
-    % [TODO] xref just gives the predicates that call; need to find the actual line
+    called_at(Path, Callable, Sources),
     maplist({Doc}/[Caller-Loc, Location]>>relative_ref_location(Doc, Caller, Loc, Location),
             Sources,
             Locations), !.
@@ -232,6 +228,19 @@ handle_msg(_, Msg, false) :-
 
 
 % helpers
+
+:- if(current_predicate(xref_called/5)).
+called_at(Path, Callable, Sources) :-
+    findall(By-local(Line),
+            xref_called(Path, Callable, By, _, Line),
+            Sources).
+:- else.
+called_at(Path, Callable, Sources) :-
+    findall(By-Ref,
+            (xref_called(Path, Callable, By),
+             xref_defined(Path, By, Ref)),
+            Sources).
+:- endif.
 
 name_callable(Name/Arity, Callable) :-
     length(FakeArgs, Arity),
