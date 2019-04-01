@@ -230,9 +230,17 @@ handle_msg(_, Msg, false) :-
 
 :- if(current_predicate(xref_called/5)).
 called_at(Path, Callable, Sources) :-
-    findall(By-local(Line),
-            xref_called(Path, Callable, By, _, Line),
-            Sources).
+    name_callable(Name, Callable),
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        findall(By-Location,
+                ( xref_called(Path, Callable, By, _, CallerLine),
+                  find_subclause(Stream, Name, CallerLine, Locations),
+                  member(Location, Locations)
+                ),
+                Sources),
+        close(Stream)
+    ).
 :- else.
 called_at(Path, Callable, Sources) :-
     findall(By-Ref,
@@ -241,11 +249,46 @@ called_at(Path, Callable, Sources) :-
             Sources).
 :- endif.
 
-name_callable(Name/0, Name) :- !.
+find_subclause(Stream, Subclause, CallerLine, Locations) :-
+    read_source_term_at_location(Stream, Term, [line(CallerLine),
+                                                subterm_positions(Poses)]),
+    findall(Offset, distinct(Offset, find_clause(Term, Offset, Poses, Subclause)),
+            Offsets),
+    collapse_adjacent(Offsets, StartOffsets),
+    maplist(offset_line_char(Stream), StartOffsets, Locations).
+
+offset_line_char(Stream, Offset, position(Line, Char)) :-
+    % seek(Stream, 0, bof, _),
+    % for some reason, seek/4 isn't zeroing stream line position
+    set_stream_position(Stream, '$stream_position'(0,0,0,0)),
+    setup_call_cleanup(
+        open_null_stream(NullStream),
+        copy_stream_data(Stream, NullStream, Offset),
+        close(NullStream)
+    ),
+    stream_property(Stream, position(Pos)),
+    stream_position_data(line_count, Pos, Line),
+    stream_position_data(line_position, Pos, Char).
+
+collapse_adjacent([X|Rst], [X|CRst]) :-
+    collapse_adjacent(X, Rst, CRst).
+collapse_adjacent(X, [Y|Rst], CRst) :-
+    succ(X, Y), !,
+    collapse_adjacent(Y, Rst, CRst).
+collapse_adjacent(_, [X|Rst], [X|CRst]) :- !,
+    collapse_adjacent(X, Rst, CRst).
+collapse_adjacent(_, [], []).
+
+
+name_callable(Name/0, Name) :- atom(Name), !.
 name_callable(Name/Arity, Callable) :-
     length(FakeArgs, Arity),
     Callable =.. [Name|FakeArgs], !.
 
+relative_ref_location(Here, _, position(Line0, Char1),
+                      _{uri: Here, range: _{start: _{line: Line0, character: Char1},
+                                            end: _{line: Line1, character: 0}}}) :-
+    !, succ(Line0, Line1).
 relative_ref_location(Here, _, local(Line1),
                       _{uri: Here, range: _{start: _{line: Line0, character: 1},
                                             end: _{line: NextLine, character: 0}}}) :-
@@ -308,21 +351,21 @@ extract_clause_at_position(Stream, _, line_char(Line1, Char), Here, _, Error, Cl
     LineBack is Line1 - 1,
     clause_at_position(Stream, Clause, line_char(LineBack, Char), Here).
 extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
-    find_clause(Terms, Here, SubPos, Clause).
+    once(find_clause(Terms, Here, SubPos, Clause)).
 
 find_clause(Term, Offset, F-T, Term/0) :-
-    between(F, T, Offset), !,
+    between(F, T, Offset),
     atom(Term).
 find_clause(Term, Offset, term_position(_, _, FF, FT, _), Name/Arity) :-
-    between(FF, FT, Offset), !,
+    between(FF, FT, Offset),
     functor(Term, Name, Arity).
 find_clause(Term, Offset, term_position(F, T, _, _, SubPoses), Clause) :-
-    between(F, T, Offset), !,
+    between(F, T, Offset),
     Term =.. [_|SubTerms],
-    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos), !,
+    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
     find_clause(SubTerm, Offset, SubPos, Clause).
-find_clause(Term, Offset, term_position(F, T, _, _, _), Name/Arity) :-
-    between(F, T, Offset), !,
+find_clause(Term, Offset, term_position(_, _, F, T, _), Name/Arity) :-
+    between(F, T, Offset),
     functor(Term, Name, Arity).
 find_clause(Term, Offset, parentheses_term_position(F, T, SubPoses), Clause) :-
     between(F, T, Offset),
