@@ -4,14 +4,11 @@
                                 tcp_bind/2,
                                 tcp_listen/2,
                                 tcp_open_socket/3]).
-:- use_module(library(http/json), [json_read_dict/3,
-                                   json_write_dict/3,
-                                   atom_json_dict/3]).
-:- use_module(library(dcg/basics), [string_without//2]).
-:- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
+:- use_module(library(http/json), [atom_json_dict/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(utf8), [utf8_codes//1]).
 :- use_module(utils).
+:- use_module(parser, [lsp_request//1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -85,31 +82,6 @@ handle_request(OutStream, Input, Rest) :-
                                     error: _{code: -32001,
                                              message: "server error"}})
         )).
-
-% parsing
-
-header(Key-Value) -->
-    string_without(":", KeyC), ": ", string_without("\r", ValueC),
-    { string_codes(Key, KeyC), string_codes(Value, ValueC) }.
-
-headers([Header]) -->
-    header(Header), "\r\n\r\n", !.
-headers([Header|Headers]) -->
-    header(Header), "\r\n",
-    headers(Headers).
-
-json_chars(0, []) --> [].
-json_chars(N, [C|Cs]) --> [C], { succ(Nn, N) }, json_chars(Nn, Cs).
-
-lsp_request(_{headers: Headers, body: Body}) -->
-    headers(HeadersList),
-    { list_to_assoc(HeadersList, Headers),
-      get_assoc("Content-Length", Headers, LengthS),
-      number_string(Length, LengthS) },
-    json_chars(Length, JsonCodes),
-    { ground(JsonCodes),
-      open_codes_stream(JsonCodes, JsonStream),
-      json_read_dict(JsonStream, Body, []) }.
 
 % Handling messages
 
