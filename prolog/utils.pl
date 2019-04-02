@@ -11,16 +11,12 @@
 :- use_module(library(lynx/html_text), [html_text/1]).
 
 :- if(current_predicate(xref_called/5)).
-called_at(Path, Callable, Sources) :-
-    findall(By-local(Line),
-            xref_called(Path, Callable, By, _, Line),
-            Sources).
+called_at(Path, Callable, By-local(Line)) :-
+    xref_called(Path, Callable, By, _, Line).
 :- else.
-called_at(Path, Callable, Sources) :-
-    findall(By-Ref,
-            (xref_called(Path, Callable, By),
-             xref_defined(Path, By, Ref)),
-            Sources).
+called_at(Path, Callable, By-Ref) :-
+    xref_called(Path, Callable, By),
+    xref_defined(Path, By, Ref).
 :- endif.
 
 name_callable(Name/0, Name) :- !.

@@ -114,6 +114,8 @@ server_capabilities(
      }
 ).
 
+:- dynamic loaded_source/1.
+
 % messages (with a response)
 handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
@@ -168,8 +170,12 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     name_callable(Clause, Callable),
     xref_source(Path),
-    called_at(Path, Callable, Sources),
-    maplist({Doc}/[Caller-Loc, Location]>>relative_ref_location(Doc, Caller, Loc, Location),
+    findall(Src-Source,
+            ( loaded_source(Src),
+              called_at(Src, Callable, Source) ),
+            Sources),
+    debug(server, "Sources ~w", [Sources]),
+    maplist([Doc-(Caller-Loc), Location]>>relative_ref_location(Doc, Caller, Loc, Location),
             Sources,
             Locations), !.
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
@@ -179,8 +185,18 @@ handle_msg("textDocument/didOpen", Msg, false) :-
     _{uri: FileUri} :< TextDoc,
     atom_concat('file://', Path, FileUri),
     debug(server, "open doc ~w", [Path]),
+    xref_source(Path),
+    assertz(loaded_source(Path)).
+handle_msg("textDocument/didSave", Msg, false) :-
+    _{params: _{textDocument: TextDoc}} :< Msg,
+    _{uri: FileUri} :< TextDoc,
+    atom_concat('file://', Path, FileUri),
     xref_source(Path).
-handle_msg("textDocument/didSave", _, false).
+handle_msg("textDocument/didClose", Msg, false) :-
+    _{params: _{textDocument: TextDoc}} :< Msg,
+    _{uri: FileUri} :< TextDoc,
+    atom_concat('file://', Path, FileUri),
+    retractall(loaded_source(Path)).
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
 handle_msg("$/cancelRequest", Msg, false) :-
