@@ -119,7 +119,10 @@ server_capabilities(
 % messages (with a response)
 handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
-    _{id: Id, params: _Params} :< Msg, !,
+    _{id: Id, params: Params} :< Msg, !,
+    atom_concat('file://', RootPath, Params.rootUri),
+    directory_source_files(RootPath, Files, [recursive(true)]),
+    maplist([F]>>assert(loaded_source(F)), Files),
     server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
