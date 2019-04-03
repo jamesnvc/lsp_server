@@ -120,7 +120,6 @@ server_capabilities(
 handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
     _{id: Id, params: Params} :< Msg, !,
-    debug(server, "init ~w: ~w", [Msg, Params]),
     server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
@@ -128,7 +127,6 @@ handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
 handle_msg("textDocument/hover", Msg, Response) :-
     _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
-    debug(server(hover), "Hover at ~w:~w in ~w", [Line0, Char0, Doc]),
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
     catch(help_at_position(Path, Line1, Char0, Id, Response),
@@ -174,7 +172,6 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
             ( loaded_source(Src),
               called_at(Src, Callable, Source) ),
             Sources),
-    debug(server, "Sources ~w", [Sources]),
     maplist([Doc-(Caller-Loc), Location]>>relative_ref_location(Doc, Caller, Loc, Location),
             Sources,
             Locations), !.
@@ -184,7 +181,6 @@ handle_msg("textDocument/didOpen", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
     _{uri: FileUri} :< TextDoc,
     atom_concat('file://', Path, FileUri),
-    debug(server, "open doc ~w", [Path]),
     xref_source(Path),
     ( loaded_source(Path) ; assertz(loaded_source(Path)) ).
 handle_msg("textDocument/didSave", Msg, false) :-
