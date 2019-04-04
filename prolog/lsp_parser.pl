@@ -1,4 +1,4 @@
-:- module(parser, [lsp_request//1]).
+:- module(lsp_parser, [lsp_request//1]).
 
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 :- use_module(library(dcg/basics), [string_without//2]).

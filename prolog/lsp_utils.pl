@@ -1,10 +1,10 @@
-:- module(utils, [called_at/3,
-                  defined_at/3,
-                  name_callable/2,
-                  relative_ref_location/4,
-                  help_at_position/5,
-                  clause_in_file_at_position/3
-                 ]).
+:- module(lsp_utils, [called_at/3,
+                      defined_at/3,
+                      name_callable/2,
+                      relative_ref_location/4,
+                      help_at_position/5,
+                      clause_in_file_at_position/3
+                     ]).
 
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).

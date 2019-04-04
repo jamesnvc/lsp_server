@@ -1,4 +1,4 @@
-:- module(server, [main/0]).
+:- module(lsp_server, [main/0]).
 
 :- use_module(library(socket), [tcp_socket/1,
                                 tcp_bind/2,
@@ -7,8 +7,8 @@
 :- use_module(library(http/json), [atom_json_dict/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(utf8), [utf8_codes//1]).
-:- use_module(utils).
-:- use_module(parser, [lsp_request//1]).
+:- use_module(lsp_utils).
+:- use_module(lsp_parser, [lsp_request//1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
