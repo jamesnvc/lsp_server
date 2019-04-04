@@ -1,4 +1,5 @@
 :- module(utils, [called_at/3,
+                  defined_at/3,
                   name_callable/2,
                   relative_ref_location/4,
                   help_at_position/5,
@@ -25,6 +26,22 @@ called_at(Path, Callable, By-Ref) :-
     xref_called(Path, Callable, By),
     xref_defined(Path, By, Ref).
 :- endif.
+
+defined_at(Path, Name/Arity, Location) :-
+    name_callable(Name/Arity, Callable),
+    xref_source(Path),
+    xref_defined(Path, Callable, Ref),
+    atom_concat('file://', Path, Doc),
+    relative_ref_location(Doc, Callable, Ref, Location).
+defined_at(Path, Name/Arity, Location) :-
+    % maybe it's a DCG?
+    DcgArity is Arity + 2,
+    name_callable(Name/DcgArity, Callable),
+    xref_source(Path),
+    xref_defined(Path, Callable, Ref),
+    atom_concat('file://', Path, Doc),
+    relative_ref_location(Doc, Callable, Ref, Location).
+
 
 find_subclause(Stream, Subclause, CallerLine, Locations) :-
     read_source_term_at_location(Stream, Term, [line(CallerLine),

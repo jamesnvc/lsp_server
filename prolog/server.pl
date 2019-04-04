@@ -157,10 +157,7 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
     atom_concat('file://', Path, Doc),
     succ(Line0, Line1),
     clause_in_file_at_position(Name/Arity, Path, line_char(Line1, Char0)),
-    name_callable(Name/Arity, Callable),
-    xref_source(Path),
-    xref_defined(Path, Callable, Ref),
-    relative_ref_location(Doc, Callable, Ref, Location).
+    defined_at(Path, Name/Arity, Location).
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc},
