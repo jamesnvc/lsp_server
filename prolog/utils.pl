@@ -12,12 +12,24 @@
 :- use_module(library(lynx/html_text), [html_text/1]).
 
 :- if(current_predicate(xref_called/5)).
-called_at(Path, Callable, By-Location) :-
-    name_callable(Name, Callable),
+called_at(Path, Clause, By-Location) :-
+    name_callable(Clause, Callable),
+    xref_source(Path),
+    xref_called(Path, Callable, By, _, CallerLine),
     setup_call_cleanup(
         open(Path, read, Stream, []),
-        ( xref_called(Path, Callable, By, _, CallerLine),
-          find_subclause(Stream, Name, CallerLine, Locations),
+        ( find_subclause(Stream, Clause, CallerLine, Locations),
+          member(Location, Locations) ),
+        close(Stream)
+    ).
+called_at(Path, Name/Arity, By-Location) :-
+    DcgArity is Arity + 2,
+    name_callable(Name/DcgArity, Callable),
+    xref_source(Path),
+    xref_called(Path, Callable, By, _, CallerLine),
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        ( find_subclause(Stream, Name/Arity, CallerLine, Locations),
           member(Location, Locations) ),
         close(Stream)
     ).
