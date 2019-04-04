@@ -7,17 +7,19 @@ Currently supports showing documentation on hover, go to definition, go to calle
 Only tested with SWI-Prolog, as it heavily uses its introspection facilities to do its stuff.
 It should work with any relative-recent versions of SWI-Prolog, but for best results for "find references" in particular, use a version with ~xref_called/5~ (as of this writing, currently unreleased; past commit [[https://github.com/SWI-Prolog/swipl-devel/commit/303f6430de5c9d7e225d8eb6fb8bb8b59e7c5f8f][303f6430de5c]]).
 
+Installable as a pack like ~?- pack_install(lsp_server).~
+
 To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
 
 #+begin_src emacs-lisp
-(setq prolog-lsp-server-path (expand-file-name "~/Projects/prolog-lsp/prolog/server.pl"))
-
 (lsp-register-client
- (make-lsp-client
-   :new-connection (lsp-stdio-connection (list "swipl"
-                                               "-s" prolog-lsp-server-path
-                                               "-g" "main" "-t" "halt"
-                                               "--" "stdio"))
+  (make-lsp-client
+   :new-connection
+   (lsp-stdio-connection (list "swipl"
+                               "-g" "use_module(library(lsp_server))."
+                               "-g" "lsp_server:main"
+                               "-t" "halt"
+                               "--" "stdio"))
    :major-modes '(prolog-mode)
    :priority 1
    :multi-root t
