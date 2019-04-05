@@ -181,6 +181,10 @@ extract_clause_at_position(Stream, _, line_char(Line1, Char), Here, _, Error, Cl
 extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
     once(find_clause(Terms, Here, SubPos, Clause)).
 
+%! find_clause(+Term:term, ?Offset:int, +Position:position, ?Subclause) is nondet.
+%  True when =Subclause= is a subclause of =Term= at offset =Offset=
+%  and =Position= is the term positions for =Term= as given by
+%  read_term/3 with =subterm_positions(Position)=.
 find_clause(Term, Offset, F-T, Term/0) :-
     between(F, T, Offset),
     atom(Term).
