@@ -12,6 +12,12 @@
 :- use_module(library(lynx/html_text), [html_text/1]).
 
 :- if(current_predicate(xref_called/5)).
+%! called_at(+Path:atom, +Clause:term, -Location:term) is nondet.
+%  Find the callers and locations of the goal =Clause=, starting from
+%  the file =Path=. =Location= will be bound to all the callers and
+%  locations that the =Clause= is called from like =Caller-Location=.
+%
+%  @see find_subclause/4
 called_at(Path, Clause, By-Location) :-
     name_callable(Clause, Callable),
     xref_source(Path),
@@ -86,11 +92,18 @@ collapse_adjacent(_, [X|Rst], [X|CRst]) :- !,
 collapse_adjacent(_, [], []).
 
 
+%! name_callable(?Name:functor, ?Callable:term) is det.
+%  True when, if Name = Func/Arity, Callable = Func(_, _, ...) with
+%  =Arity= args.
 name_callable(Name/0, Name) :- atom(Name), !.
 name_callable(Name/Arity, Callable) :-
     length(FakeArgs, Arity),
     Callable =.. [Name|FakeArgs], !.
 
+%! relative_ref_location(+Path:atom, +Goal:term, +Position:position(int, int), -Location:dict) is semidet.
+%  Given =Goal= found in =Path= and position =Position= (from
+%  called_at/3), =Location= is a dictionary suitable for sending as an
+%  LSP response indicating the position in a file of =Goal=.
 relative_ref_location(Here, _, position(Line0, Char1),
                       _{uri: Here, range: _{start: _{line: Line0, character: Char1},
                                             end: _{line: Line1, character: 0}}}) :-
@@ -110,7 +123,6 @@ help_at_position(Path, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
     predicate_help(Path, Clause, S), !.
 help_at_position(_, _, _, Id, _{id: Id, result: null}).
 
-% [TODO] use xref_comment to get docs for local predicates
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),
     help_objects(Pred, exact, Matches), !,
@@ -119,6 +131,19 @@ predicate_help(_, Pred, Help) :-
                        load_html(stream(In), Dom, []),
                        close(In)),
     with_output_to(string(Help), html_text(Dom)).
+predicate_help(HerePath, Pred, Help) :-
+    xref_source(HerePath),
+    name_callable(Pred, Callable),
+    xref_defined(HerePath, Callable, Loc),
+    location_path(HerePath, Loc, Path),
+    once(xref_comment(Path, Callable, Summary, Comment)),
+    pldoc_process:parse_comment(Comment, Path:0, Parsed),
+    memberchk(mode(Signature, Mode), Parsed),
+    memberchk(predicate(_, Summary, _), Parsed),
+    format(string(Help), "  ~w is ~w.~n~n~w", [Signature, Mode, Summary]).
+
+location_path(HerePath, local(_), HerePath).
+location_path(_, imported(Path), Path).
 
 linechar_offset(Stream, line_char(Line1, Char1), Offset) :-
     seek(Stream, 0, bof, _),
