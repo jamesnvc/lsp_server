@@ -16,7 +16,6 @@ main :-
     set_prolog_flag(toplevel_prompt, ''),
     current_prolog_flag(argv, Args),
     debug(server),
-    debug(server, "args ~w", [Args]),
     start(Args).
 
 start([stdio]) :- !,
