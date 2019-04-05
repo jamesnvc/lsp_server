@@ -145,10 +145,10 @@ predicate_help(HerePath, Pred, Help) :-
 location_path(HerePath, local(_), HerePath).
 location_path(_, imported(Path), Path).
 
-linechar_offset(Stream, line_char(Line1, Char1), Offset) :-
+linechar_offset(Stream, line_char(Line1, Char0), Offset) :-
     seek(Stream, 0, bof, _),
     seek_to_line(Stream, Line1),
-    seek(Stream, Char1, current, Offset).
+    seek(Stream, Char0, current, Offset).
 
 seek_to_line(Stream, N) :-
     N > 1, !,
