@@ -185,9 +185,9 @@ extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
 %  True when =Subclause= is a subclause of =Term= at offset =Offset=
 %  and =Position= is the term positions for =Term= as given by
 %  read_term/3 with =subterm_positions(Position)=.
-find_clause(Term, Offset, F-T, Term/0) :-
+find_clause(Term, Offset, F-T, Clause) :-
     between(F, T, Offset),
-    atom(Term).
+    ground(Term), Clause = Term/0.
 find_clause(Term, Offset, term_position(_, _, FF, FT, _), Name/Arity) :-
     between(FF, FT, Offset),
     functor(Term, Name, Arity).
