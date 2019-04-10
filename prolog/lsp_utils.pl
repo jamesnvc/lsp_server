@@ -158,18 +158,21 @@ seek_to_line(Stream, N) :-
 seek_to_line(_, _).
 
 clause_in_file_at_position(Clause, Path, Position) :-
+    xref_source(Path),
+    findall(Op, xref_op(Path, Op), Ops),
     setup_call_cleanup(
         open(Path, read, Stream, []),
-        clause_at_position(Stream, Clause, Position),
+        clause_at_position(Stream, Ops, Clause, Position),
         close(Stream)
     ).
 
-clause_at_position(Stream, Clause, Start) :-
+clause_at_position(Stream, Ops, Clause, Start) :-
     linechar_offset(Stream, Start, Offset), !,
-    clause_at_position(Stream, Clause, Start, Offset).
-clause_at_position(Stream, Clause, line_char(Line1, Char), Here) :-
+    clause_at_position(Stream, Ops, Clause, Start, Offset).
+clause_at_position(Stream, Ops, Clause, line_char(Line1, Char), Here) :-
     read_source_term_at_location(Stream, Terms, [line(Line1),
                                                  subterm_positions(SubPos),
+                                                 operators(Ops),
                                                  error(Error)]),
     extract_clause_at_position(Stream, Terms, line_char(Line1, Char), Here,
                                SubPos, Error, Clause).
