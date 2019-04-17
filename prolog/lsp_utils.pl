@@ -174,14 +174,14 @@ clause_at_position(Stream, Ops, Clause, line_char(Line1, Char), Here) :-
                                                  subterm_positions(SubPos),
                                                  operators(Ops),
                                                  error(Error)]),
-    extract_clause_at_position(Stream, Terms, line_char(Line1, Char), Here,
+    extract_clause_at_position(Stream, Ops, Terms, line_char(Line1, Char), Here,
                                SubPos, Error, Clause).
 
-extract_clause_at_position(Stream, _, line_char(Line1, Char), Here, _, Error, Clause) :-
+extract_clause_at_position(Stream, Ops, _, line_char(Line1, Char), Here, _, Error, Clause) :-
     nonvar(Error), !, Line1 > 1,
     LineBack is Line1 - 1,
-    clause_at_position(Stream, Clause, line_char(LineBack, Char), Here).
-extract_clause_at_position(_, Terms, _, Here, SubPos, _, Clause) :-
+    clause_at_position(Stream, Ops, Clause, line_char(LineBack, Char), Here).
+extract_clause_at_position(_, _, Terms, _, Here, SubPos, _, Clause) :-
     once(find_clause(Terms, Here, SubPos, Clause)).
 
 %! find_clause(+Term:term, ?Offset:int, +Position:position, ?Subclause) is nondet.
