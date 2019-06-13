@@ -25,8 +25,8 @@ called_at(Path, Clause, By-Location) :-
     setup_call_cleanup(
         open(Path, read, Stream, []),
         ( find_subclause(Stream, Clause, CallerLine, Locations),
-          exclude([position(_, 0)]>>true, Locations, FilteredLocations),
-          member(Location, FilteredLocations) ),
+          member(Location, Locations),
+          Location \= position(_, 0) ),
         close(Stream)
     ).
 called_at(Path, Name/Arity, By-Location) :-
@@ -37,8 +37,8 @@ called_at(Path, Name/Arity, By-Location) :-
     setup_call_cleanup(
         open(Path, read, Stream, []),
         ( find_subclause(Stream, Name/Arity, CallerLine, Locations),
-          exclude([position(_, 0)]>>true, Locations, FilteredLocations),
-          member(Location, FilteredLocations) ),
+          member(Location, Locations),
+          Location \= position(_, 0) ),
         close(Stream)
     ).
 :- else.
