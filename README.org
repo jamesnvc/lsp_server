@@ -5,7 +5,7 @@ Still a heavy work-in-progress.
 Currently supports showing documentation on hover, go to definition, go to callers, and listing defined symbols in the file.
 
 Only tested with SWI-Prolog, as it heavily uses its introspection facilities to do its stuff.
-It should work with any relative-recent versions of SWI-Prolog, but for best results for "find references" in particular, use a version with ~xref_called/5~ (as of this writing, currently unreleased; past commit [[https://github.com/SWI-Prolog/swipl-devel/commit/303f6430de5c9d7e225d8eb6fb8bb8b59e7c5f8f][303f6430de5c]]).
+It should work with any relative-recent versions of SWI-Prolog, but for best results for "find references" in particular, use a version with ~xref_called/5~ (8.1.5 or newer; past commit [[https://github.com/SWI-Prolog/swipl-devel/commit/303f6430de5c9d7e225d8eb6fb8bb8b59e7c5f8f][303f6430de5c]]).
 
 Installable as a pack like ~?- pack_install(lsp_server).~
 
