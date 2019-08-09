@@ -161,18 +161,18 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     _{id: Id, params: Params} :< Msg,
-    _{textDocument: _{uri: Doc},
+    _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0}} :< Params,
-    atom_concat('file://', Path, Doc),
+    atom_concat('file://', Path, Uri),
     succ(Line0, Line1),
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
-    findall(Src-Source,
-            ( loaded_source(Src),
-              called_at(Src, Clause, Source) ),
-            Sources),
-    maplist([Doc-(Caller-Loc), Location]>>relative_ref_location(Doc, Caller, Loc, Location),
-            Sources,
-            Locations), !.
+    findall(
+        Location,
+        ( loaded_source(Doc),
+          called_at(Doc, Clause, Source),
+          Caller-Loc = Source,
+          relative_ref_location(Doc, Caller, Loc, Location) ),
+        Locations), !.
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/completion", Msg, _{id: Msg.id, result: null}) :- !.
 % notifications (no response)
