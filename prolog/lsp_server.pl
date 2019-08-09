@@ -151,17 +151,18 @@ handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
             GoalLines,
             Symbols).
 handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
-    _{id: Id, params: _{textDocument: _{uri: Doc},
-                        position: _{line: Line0, character: Char0}}} :< Msg,
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Doc},
+      position: _{line: Line0, character: Char0}} :< Params,
     atom_concat('file://', Path, Doc),
     succ(Line0, Line1),
     clause_in_file_at_position(Name/Arity, Path, line_char(Line1, Char0)),
     defined_at(Path, Name/Arity, Location).
 handle_msg("textDocument/definition", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
-    _{id: Id, params: _{textDocument: _{uri: Doc},
-                        context: _,
-                        position: _{line: Line0, character: Char0}}} :< Msg,
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Doc},
+      position: _{line: Line0, character: Char0}} :< Params,
     atom_concat('file://', Path, Doc),
     succ(Line0, Line1),
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
