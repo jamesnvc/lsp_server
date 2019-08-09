@@ -100,9 +100,9 @@ server_capabilities(
       documentSymbolProvider: true,
       workspaceSymbolProvider: true,
       codeActionProvider: false,
-      codeLensProvider: false,
+      %% codeLensProvider: false,
       documentFormattingProvider:false,
-      documentOnTypeFormattingProvider: false,
+      %% documentOnTypeFormattingProvider: false,
       renameProvider: false,
       documentLinkProvider: false, % ???
       colorProvider: true,
