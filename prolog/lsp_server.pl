@@ -169,8 +169,7 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     findall(
         Location,
         ( loaded_source(Doc),
-          called_at(Doc, Clause, Source),
-          Caller-Loc = Source,
+          called_at(Doc, Clause, Caller-Loc),
           relative_ref_location(Doc, Caller, Loc, Location) ),
         Locations), !.
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
