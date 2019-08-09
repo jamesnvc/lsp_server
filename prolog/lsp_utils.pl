@@ -1,4 +1,4 @@
-:- module(lsp_utils, [called_at/3,
+:- module(lsp_utils, [called_at/4,
                       defined_at/3,
                       name_callable/2,
                       relative_ref_location/4,
@@ -12,13 +12,13 @@
 :- use_module(library(lynx/html_text), [html_text/1]).
 
 :- if(current_predicate(xref_called/5)).
-%! called_at(+Path:atom, +Clause:term, -Location:term) is nondet.
+%! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.
 %  Find the callers and locations of the goal =Clause=, starting from
 %  the file =Path=. =Location= will be bound to all the callers and
 %  locations that the =Clause= is called from like =Caller-Location=.
 %
 %  @see find_subclause/4
-called_at(Path, Clause, By-Location) :-
+called_at(Path, Clause, By, Location) :-
     name_callable(Clause, Callable),
     xref_source(Path),
     xref_called(Path, Callable, By, _, CallerLine),
@@ -29,7 +29,7 @@ called_at(Path, Clause, By-Location) :-
           Location \= position(_, 0) ),
         close(Stream)
     ).
-called_at(Path, Name/Arity, By-Location) :-
+called_at(Path, Name/Arity, By, Location) :-
     DcgArity is Arity + 2,
     name_callable(Name/DcgArity, Callable),
     xref_source(Path),
@@ -42,7 +42,7 @@ called_at(Path, Name/Arity, By-Location) :-
         close(Stream)
     ).
 :- else.
-called_at(Path, Callable, By-Ref) :-
+called_at(Path, Callable, By, Ref) :-
     xref_called(Path, Callable, By),
     xref_defined(Path, By, Ref).
 :- endif.

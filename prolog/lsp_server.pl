@@ -173,7 +173,7 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
         Location,
         ( loaded_source(Doc),
           atom_concat('file://', Doc, DocUri),
-          called_at(Doc, Clause, Caller-Loc),
+          called_at(Doc, Clause, Caller, Loc),
           relative_ref_location(DocUri, Caller, Loc, Location)
         ),
         Locations), !.
