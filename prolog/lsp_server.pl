@@ -8,6 +8,7 @@
 :- use_module(library(prolog_xref)).
 :- use_module(library(utf8), [utf8_codes//1]).
 :- use_module(lsp_utils).
+:- use_module(lsp_checking, [check_errors/2]).
 :- use_module(lsp_parser, [lsp_request//1]).
 
 main :-
@@ -186,7 +187,9 @@ handle_msg("textDocument/didOpen", Msg, false) :-
     atom_concat('file://', Path, FileUri),
     ( loaded_source(Path) ; assertz(loaded_source(Path)) ).
 handle_msg("textDocument/didChange", _, false).
-handle_msg("textDocument/didSave", _, false).
+handle_msg("textDocument/didSave", Msg, Resp) :-
+    _{params: Params} :< Msg,
+    check_errors_resp(Params.textDocument.uri, Resp).
 handle_msg("textDocument/didClose", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
     _{uri: FileUri} :< TextDoc,
@@ -205,3 +208,13 @@ handle_msg(_, Msg, _{id: Id, error: _{code: -32603, message: "Unimplemented"}}) 
     debug(server, "unknown message ~w", [Msg]).
 handle_msg(_, Msg, false) :-
     debug(server, "unknown notification ~w", [Msg]).
+
+check_errors_resp(FileUri, _{method: "textDocument/publishDiagnostics",
+                             params: _{uri: FileUri, diagnostics: FileErrors}}) :-
+    atom_concat('file://', Path, FileUri),
+    check_errors(Path, AllErrors),
+    convlist({Path}/[Err, FErr]>>(
+                 del_dict(file, Err, Path, FErr)
+             ),
+            AllErrors,
+            FileErrors).
