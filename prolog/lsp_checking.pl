@@ -17,9 +17,12 @@ check_errors(Path, Errors) :-
         OutStream,
         ErrorCodes,
         []),
-    ( phrase(error_messages(Errors), ErrorCodes)
-    -> true
-    ; debug(server, "Couldn't parse errors '~s'", [ErrorCodes]) ).
+    phrase(error_messages(AllErrors), ErrorCodes),
+    convlist({Path}/[Err, FErr]>>(
+                 del_dict(file, Err, Path, FErr)
+             ),
+            AllErrors,
+            Errors).
 
 error_message(_{severity: 1,
                 source: "prolog_xref",

@@ -210,11 +210,6 @@ handle_msg(_, Msg, false) :-
     debug(server, "unknown notification ~w", [Msg]).
 
 check_errors_resp(FileUri, _{method: "textDocument/publishDiagnostics",
-                             params: _{uri: FileUri, diagnostics: FileErrors}}) :-
+                             params: _{uri: FileUri, diagnostics: Errors}}) :-
     atom_concat('file://', Path, FileUri),
-    check_errors(Path, AllErrors),
-    convlist({Path}/[Err, FErr]>>(
-                 del_dict(file, Err, Path, FErr)
-             ),
-            AllErrors,
-            FileErrors).
+    check_errors(Path, Errors).
