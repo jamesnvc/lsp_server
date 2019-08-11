@@ -185,6 +185,7 @@ handle_msg("textDocument/didOpen", Msg, false) :-
     _{uri: FileUri} :< TextDoc,
     atom_concat('file://', Path, FileUri),
     ( loaded_source(Path) ; assertz(loaded_source(Path)) ).
+handle_msg("textDocument/didChange", _, false).
 handle_msg("textDocument/didSave", _, false).
 handle_msg("textDocument/didClose", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
