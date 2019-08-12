@@ -2,6 +2,7 @@
 
 :- use_module(library(dcg/basics), [string//1,
                                     string_without//2,
+                                    prolog_var_name//1,
                                     whites//0,
                                     integer//1]).
 :- use_module(lsp_utils, [clause_variable_positions/3]).
@@ -28,16 +29,16 @@ check_errors(Path, ExErrors) :-
 
 maybe_expand_errors(Path, [Err|InErrs], OutErrs-Tail0) :-
     string_concat("Singleton variables: ", SingleVarsS, Err.message), !,
-    split_string(SingleVarsS, ",", "[]", SingleVarNames),
-    maplist(atom_string, SingletonVars, SingleVarNames),
-    clause_variable_positions(Path, Err.range.start.line, VariablePoses),
+    string_codes(SingleVarsS, SingleVarsCodes),
+    phrase(parse_list(SingletonVars), SingleVarsCodes),
+    succ(Err.range.start.line, ClauseLine),
+    clause_variable_positions(Path, ClauseLine, VariablePoses),
     list_to_assoc(VariablePoses, VarPoses),
     findall(
         NewErr,
         ( member(VarName, SingletonVars),
           atom_length(VarName, VarLen),
-          get_assoc(VarName, VarPoses, Poses),
-          member(position(Line, Char), Poses),
+          get_assoc(VarName, VarPoses, [position(Line, Char)]),
           EndChar is Char + VarLen,
           format(string(Msg), "Singleton variable ~w", [VarName]),
           NewErr = _{severity: 2,
@@ -68,7 +69,6 @@ error_message(_{severity: 2,
                 source: "prolog_xref",
                 file: Path,
                 range: _{start: _{line: Line0, character: 0},
-                         % [TODO] make this end at the end of the clause
                          end: _{line: Line1, character: 0}},
                 message: Msg}) -->
     "Warning: ", string(PathCodes), ":", integer(Line1), ":\n",
@@ -81,3 +81,9 @@ error_messages([Error|Errors]) -->
     error_message(Error), !,
     error_messages(Errors).
 error_messages([]) --> [].
+
+parse_list(Xs) --> "[", parse_elts(Xs).
+parse_elts([X|Xs]) -->
+    prolog_var_name(X), !, parse_next_elts(Xs).
+parse_next_elts([]) --> "]".
+parse_next_elts(Xs) --> ",", parse_elts(Xs).
