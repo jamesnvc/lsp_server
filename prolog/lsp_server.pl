@@ -181,11 +181,12 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/completion", Msg, _{id: Msg.id, result: null}) :- !.
 % notifications (no response)
-handle_msg("textDocument/didOpen", Msg, false) :-
+handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
     _{uri: FileUri} :< TextDoc,
     atom_concat('file://', Path, FileUri),
-    ( loaded_source(Path) ; assertz(loaded_source(Path)) ).
+    ( loaded_source(Path) ; assertz(loaded_source(Path)) ),
+    check_errors_resp(FileUri, Resp).
 handle_msg("textDocument/didChange", _, false).
 handle_msg("textDocument/didSave", Msg, Resp) :-
     _{params: Params} :< Msg,
