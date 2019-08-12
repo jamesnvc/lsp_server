@@ -25,3 +25,15 @@ To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
    :multi-root t
    :server-id 'prolog-ls))
 #+end_src
+
+To use with Vim/Neovim, via [[https://github.com/autozimu/LanguageClient-neovim][LanguageClient]]:
+
+#+begin_src viml
+let g:LanguageClient_serverCommands = {
+\ 'prolog': ['~/.swivm/versions/8.1.10/bin/swipl',
+\            '-g', 'use_module(library(lsp_server)).',
+\            '-g', 'lsp_server:main',
+\            '-t', 'halt',
+\            '--', 'stdio']
+\ }
+#+end_src
