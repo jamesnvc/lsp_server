@@ -3,7 +3,8 @@
                       name_callable/2,
                       relative_ref_location/4,
                       help_at_position/5,
-                      clause_in_file_at_position/3
+                      clause_in_file_at_position/3,
+                      clause_variable_positions/3
                      ]).
 
 :- use_module(library(prolog_xref)).
@@ -159,6 +160,29 @@ seek_to_line(Stream, N) :-
     seek_to_line(Stream, NN).
 seek_to_line(_, _).
 
+clause_variable_positions(Path, Line, Variables) :-
+    xref_source(Path),
+    findall(Op, xref_op(Path, Op), Ops),
+    setup_call_cleanup(
+        open(Path, read, Stream, []),
+        ( read_source_term_at_location(Stream, Term,
+                                 [line(Line),
+                                  subterm_positions(SubPos),
+                                  variable_names(VarNames),
+                                  operators(Ops),
+                                  error(_Error)]),
+          findall(
+              VarName-Locations,
+              ( member(VarName=Var, VarNames),
+                findall(Offset, find_var(Term, Offset, SubPos, Var), Offsets),
+                collapse_adjacent(Offsets, ColOffsets),
+                maplist(offset_line_char(Stream), ColOffsets, Locations)
+              ),
+              Variables)
+        ),
+        close(Stream)
+    ).
+
 clause_in_file_at_position(Clause, Path, Position) :-
     xref_source(Path),
     findall(Op, xref_op(Path, Op), Ops),
@@ -222,3 +246,18 @@ find_containing_term(Offset, [BTerm|_], [BP|_], Term, P) :-
     between(F, T, Offset).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
+
+find_var(Term, Offset, F-T, Var) :-
+    Var == Term,
+    between(F, T, Offset).
+find_var(Term, Offset, term_position(F, T, _, _, SubPoses), Var) :-
+    between(F, T, Offset),
+    Term =.. [_|SubTerms],
+    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
+    find_var(SubTerm, Offset, SubPos, Var).
+find_var(Term, Offset, parentheses_term_position(F, T, SubPoses), Var) :-
+    between(F, T, Offset),
+    find_var(Term, Offset, SubPoses, Var).
+find_var({SubTerm}, Offset, brace_term_position(F, T, SubPos), Var) :-
+    between(F, T, Offset),
+    find_var(SubTerm, Offset, SubPos, Var).
