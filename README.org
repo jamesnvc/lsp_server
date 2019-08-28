@@ -30,7 +30,7 @@ To use with Vim/Neovim, via [[https://github.com/autozimu/LanguageClient-neovim]
 
 #+begin_src viml
 let g:LanguageClient_serverCommands = {
-\ 'prolog': ['~/.swivm/versions/8.1.10/bin/swipl',
+\ 'prolog': ['swipl',
 \            '-g', 'use_module(library(lsp_server)).',
 \            '-g', 'lsp_server:main',
 \            '-t', 'halt',
