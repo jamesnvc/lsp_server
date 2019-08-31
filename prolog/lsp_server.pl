@@ -34,6 +34,9 @@ stdio_server :-
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
+    % handling UTF decoding in JSON parsing, but doing the auto-translation
+    % causes Content-Length to be incorrect
+    set_stream(In, encoding(octet)),
     current_output(Out),
     set_stream(Out, encoding(utf8)),
     stdio_handler(A-A, In).
