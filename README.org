@@ -1,6 +1,6 @@
 * Prolog Language server
 
-Still a heavy work-in-progress.
+Still a work-in-progress -- please open an issue if you have any issues or feature requests!.
 
 Currently supports showing documentation on hover, go to definition, go to callers, listing defined symbols in the file, and showing a limited number of diagnostics.
 
