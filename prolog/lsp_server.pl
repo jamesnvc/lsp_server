@@ -91,6 +91,7 @@ handle_request(OutStream, Input, Rest) :-
 server_capabilities(
     _{textDocumentSync: _{openClose: true,
                           change: 2, %incremental
+                          save: _{includeText: false},
                           willSave: false,
                           willSaveWaitUntil: false %???
                           },
