@@ -27,11 +27,10 @@ check_errors(Path, Errors) :-
     nb_getval(checking_errors, ErrList),
     expand_errors(Path, ErrList, Errors-Errors).
 
-expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine1-_|InErrs],
+expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs],
               OutErrs-Tail0) :- !,
     debug(server, "expanding singletons ~w", [SingletonVars]),
-    succ(ClauseLine0, ClauseLine1),
-    clause_variable_positions(Path, ClauseLine0, VariablePoses),
+    clause_variable_positions(Path, ClauseLine, VariablePoses),
     debug(server, "var poses ~w", [VariablePoses]),
     list_to_assoc(VariablePoses, VarPoses),
     findall(
@@ -49,6 +48,8 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine1-_|InErrs
         Tail0,
         Tail1),
     expand_errors(Path, InErrs, OutErrs-Tail1).
+expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
+    expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
     debug(server, "expanding ~w", [Term-Kind-Lines-Line1-Char1]),
     kind_level(Kind, Level),
@@ -62,6 +63,9 @@ expand_errors(Path, [Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
                      end: _{line: Line1, character: 0}},
             message: Msg
            },
+    expand_errors(Path, InErr, OutErrs-Tail).
+expand_errors(Path, [Msg|InErr], OutErrs-Tail) :-
+    debug(server, "unknown message ~w", [Msg]),
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(_, [], _-[]).
 
