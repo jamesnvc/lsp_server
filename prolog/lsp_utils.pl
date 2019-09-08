@@ -251,6 +251,15 @@ find_containing_term(Offset, [BTerm|_], [BP|_], Term, P) :-
     BP = brace_term_position(F, T, P),
     {Term} = BTerm,
     between(F, T, Offset).
+find_containing_term(Offset, [Terms|_], [LP|_], Term, P) :-
+    LP = list_position(_F, _T, Ps, _),
+    find_containing_term(Offset, Terms, Ps, Term, P).
+find_containing_term(Offset, [Dict|_], [DP|_], Term, P) :-
+    DP = dict_position(_, _, _, _, Ps),
+    member(key_value_position(_F, _T, _SepF, _SepT, Key, _KeyPos, ValuePos),
+          Ps),
+    get_dict(Key, Dict, Value),
+    find_containing_term(Offset, [Value], [ValuePos], Term, P).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
 
