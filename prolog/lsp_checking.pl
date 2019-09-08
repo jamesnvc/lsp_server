@@ -7,32 +7,32 @@
                                     integer//1]).
 :- use_module(lsp_utils, [clause_variable_positions/3]).
 
-check_errors(Path, ExErrors) :-
-    with_output_to_codes(
-        setup_call_cleanup(
-            ( stream_property(OldErr, alias(user_error)),
-              set_stream(OutStream, alias(user_error))
-            ),
-            xref_source(Path),
-            set_stream(OldErr, alias(user_error))
-        ),
-        OutStream,
-        ErrorCodes,
-        []),
-    phrase(error_messages(AllErrors), ErrorCodes),
-    convlist({Path}/[Err, FErr]>>(
-                 del_dict(file, Err, Path, FErr)
-             ),
-            AllErrors,
-            Errors),
-    maybe_expand_errors(Path, Errors, ExErrors-ExErrors).
+:- dynamic message_hook/3.
+:- multifile message_hook/3.
 
-maybe_expand_errors(Path, [Err|InErrs], OutErrs-Tail0) :-
-    string_concat("Singleton variables: ", SingleVarsS, Err.message), !,
-    string_codes(SingleVarsS, SingleVarsCodes),
-    phrase(parse_list(SingletonVars), SingleVarsCodes),
-    succ(Err.range.start.line, ClauseLine),
-    clause_variable_positions(Path, ClauseLine, VariablePoses),
+check_errors(Path, Errors) :-
+    nb_setval(checking_errors, []),
+    Hook = (user:message_hook(Term, Kind, Lines) :-
+                prolog_load_context(term_position, Pos),
+                stream_position_data(line_count, Pos, Line),
+                stream_position_data(line_position, Pos, Char),
+                nb_getval(checking_errors, ErrList),
+                nb_setval(checking_errors, [Term-Kind-Lines-Line-Char|ErrList])
+           ),
+    setup_call_cleanup(
+        assertz(Hook),
+        ( xref_clean(Path), xref_source(Path) ),
+        retractall(user:message_hook(_, _, _))
+    ),
+    nb_getval(checking_errors, ErrList),
+    expand_errors(Path, ErrList, Errors-Errors).
+
+expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine1-_|InErrs],
+              OutErrs-Tail0) :- !,
+    debug(server, "expanding singletons ~w", [SingletonVars]),
+    succ(ClauseLine0, ClauseLine1),
+    clause_variable_positions(Path, ClauseLine0, VariablePoses),
+    debug(server, "var poses ~w", [VariablePoses]),
     list_to_assoc(VariablePoses, VarPoses),
     findall(
         NewErr,
@@ -42,48 +42,28 @@ maybe_expand_errors(Path, [Err|InErrs], OutErrs-Tail0) :-
           EndChar is Char + VarLen,
           format(string(Msg), "Singleton variable ~w", [VarName]),
           NewErr = _{severity: 2,
-                  source: "prolog_xref",
-                  range: _{start: _{line: Line, character: Char},
-                           end: _{line: Line, character: EndChar}},
-                  message: Msg}),
+                     source: "prolog_xref",
+                     range: _{start: _{line: Line, character: Char},
+                              end: _{line: Line, character: EndChar}},
+                     message: Msg}),
         Tail0,
         Tail1),
-    maybe_expand_errors(Path, InErrs, OutErrs-Tail1).
-maybe_expand_errors(Path, [Err|InErrs], OutErrs-[Err|Tail]) :-
-    !,
-    maybe_expand_errors(Path, InErrs, OutErrs-Tail).
-maybe_expand_errors(_, [], _-[]).
+    expand_errors(Path, InErrs, OutErrs-Tail1).
+expand_errors(Path, [Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
+    debug(server, "expanding ~w", [Term-Kind-Lines-Line1-Char1]),
+    kind_level(Kind, Level),
+    Lines = ['~w:~d:~d: '-[Path, Line0, Char0]|Msgs],
+    atomic_list_concat(Msgs, Msg),
+    succ(Line0, Line1),
+    ( succ(Char0, Char1) ; Char0 = 0 ),
+    Err = _{severity: Level,
+            source: "prolog_xref",
+            range: _{start: _{line: Line0, character: Char0},
+                     end: _{line: Line1, character: 0}},
+            message: Msg
+           },
+    expand_errors(Path, InErr, OutErrs-Tail).
+expand_errors(_, [], _-[]).
 
-error_message(_{severity: 1,
-                source: "prolog_xref",
-                file: Path,
-                range: _{start: _{line: Line0, character: Char0},
-                        end: _{line: Line1, character: 0}},
-                message: Msg}) -->
-    "ERROR: ", string(PathCodes), ":", integer(Line1), ":", integer(Char1), ":",
-    " ", string_without("\n", MsgCodes), "\n",
-    { succ(Line0, Line1), succ(Char0, Char1),
-      string_codes(Msg, MsgCodes),
-      atom_codes(Path, PathCodes) }.
-error_message(_{severity: 2,
-                source: "prolog_xref",
-                file: Path,
-                range: _{start: _{line: Line0, character: 0},
-                         end: _{line: Line1, character: 0}},
-                message: Msg}) -->
-    "Warning: ", string(PathCodes), ":", integer(Line1), ":\n",
-    "Warning: ", whites, string_without("\n", MsgCodes), "\n",
-    { succ(Line0, Line1),
-      atom_codes(Path, PathCodes),
-      string_codes(Msg, MsgCodes) }.
-
-error_messages([Error|Errors]) -->
-    error_message(Error), !,
-    error_messages(Errors).
-error_messages([]) --> [].
-
-parse_list(Xs) --> "[", parse_elts(Xs).
-parse_elts([X|Xs]) -->
-    prolog_var_name(X), !, parse_next_elts(Xs).
-parse_next_elts([]) --> "]".
-parse_next_elts(Xs) --> ",", parse_elts(Xs).
+kind_level(error, 1).
+kind_level(warning, 2).
