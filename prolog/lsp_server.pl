@@ -218,3 +218,5 @@ check_errors_resp(FileUri, _{method: "textDocument/publishDiagnostics",
                              params: _{uri: FileUri, diagnostics: Errors}}) :-
     atom_concat('file://', Path, FileUri),
     check_errors(Path, Errors).
+check_errors_resp(_, false) :-
+    debug(server, "Failed checking errors", []).
