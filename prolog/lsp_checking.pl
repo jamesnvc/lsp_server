@@ -51,9 +51,9 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
 expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
-    debug(server, "expanding ~w", [Term-Kind-Lines-Line1-Char1]),
+    debug(server, "expanding ~w", [Term-Kind-Lines]),
     kind_level(Kind, Level),
-    Lines = ['~w:~d:~d: '-[Path, Line0, Char0]|Msgs],
+    Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs],
     atomic_list_concat(Msgs, Msg),
     succ(Line0, Line1),
     ( succ(Char0, Char1) ; Char0 = 0 ),
