@@ -10,6 +10,7 @@
 :- use_module(lsp_utils).
 :- use_module(lsp_checking, [check_errors/2]).
 :- use_module(lsp_parser, [lsp_request//1]).
+:- use_module(lsp_completion, [completions_at/3]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -96,7 +97,7 @@ server_capabilities(
                           willSaveWaitUntil: false %???
                           },
       hoverProvider: true,
-      %% completionProvider: false,
+      completionProvider: _{},
       definitionProvider: true,
       declarationProvider: true,
       implementationProvider: true,
@@ -183,7 +184,13 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
         ),
         Locations), !.
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
-handle_msg("textDocument/completion", Msg, _{id: Msg.id, result: null}) :- !.
+handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Uri},
+      position: _{line: Line0, character: Char0}} :< Params,
+    atom_concat('file://', Path, Uri),
+    succ(Line0, Line1),
+    completions_at(Path, line_char(Line1, Char0), Completions).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
