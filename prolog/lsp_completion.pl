@@ -31,14 +31,23 @@ prefix_at(File, Position, Prefix) :-
 
 completions_at(File, Position, Completions) :-
     prefix_at(File, Position, Prefix),
-    debug(completion, "completions for ~w", [Prefix]),
     xref_source(File, [silent(true)]),
     findall(
         Result,
         ( xref_defined(File, Goal, _),
-          functor(Goal, Name, _),
-          debug(completion, "name ~w", [Name]),
+          functor(Goal, Name, Arity),
           atom_concat(Prefix, _, Name),
-          Result = _{label: Name} ),
+          args_str(Arity, Args),
+          format(string(Func), "~w(~w)$0", [Name, Args]),
+          format(string(Label), "~w/~w", [Name, Arity]),
+          Result = _{label: Label,
+                     insertText: Func,
+                     insertTextFormat: 2}),
         Completions
     ).
+
+args_str(Arity, Str) :-
+    numlist(1, Arity, Args),
+    maplist([A, S]>>format(string(S), "${~w:_}", [A]),
+           Args, ArgStrs),
+    atomic_list_concat(ArgStrs, ', ', Str).
