@@ -1,10 +1,6 @@
 :- module(lsp_changes, [handle_doc_changes/2,
                         doc_text_fallback/2]).
 
-:- use_module(library(list_util), [drop/3,
-                                   split_at/4,
-                                   span/4]).
-
 :- dynamic doc_text/2.
 
 handle_doc_changes(_, []) :- !.
@@ -36,21 +32,25 @@ doc_text_fallback(Path, Text) :-
 
 %! replace_codes(Text, StartLine, StartChar, ReplaceLen, ReplaceText, -NewText) is det.
 replace_codes(Text, StartLine, StartChar, ReplaceLen, ReplaceText, NewText) :-
-    skip_to_start(Text, StartLine, StartChar, PrefixText, RestText),
-    drop(ReplaceLen, RestText, KeepText),
-    append(ReplaceText, KeepText, Tail),
-    append(PrefixText, Tail, NewText), !.
+    phrase(replace(StartLine, StartChar, ReplaceLen, ReplaceText),
+           Text,
+           NewText).
 
-% [TODO] re-write this without all the appends
-skip_to_start(Text, StartLine, StartChar, Prefix, Suffix) :-
-    ( numlist(1, StartLine, NLines) ; NLines = [] ),
-    foldl([_, Prefix0-Suffix0, Prefix1-Suffix1]>>(
-              span(\==(0'\n), Suffix0, PrefixTail, [_|Suffix1]),
-              append(Prefix0, PrefixTail, Prefix00),
-              append(Prefix00, [0'\n], Prefix1)
-          ),
-          NLines,
-          []-Text,
-          PrefixLine-SuffixLine),
-    split_at(StartChar, SuffixLine, LineHead, Suffix),
-    append(PrefixLine, LineHead, Prefix).
+replace(0, 0, 0, NewText), NewText --> !, [].
+replace(0, 0, Skip, NewText) -->
+    !, skip(Skip),
+    replace(0, 0, 0, NewText).
+replace(0, Chars, Skip, NewText), Take -->
+    { length(Take, Chars) },
+    Take, !,
+    replace(0, 0, Skip, NewText).
+replace(Lines1, Chars, Skip, NewText), Line -->
+    line(Line), !,
+    { succ(Lines0, Lines1) },
+    replace(Lines0, Chars, Skip, NewText).
+
+skip(0) --> !, [].
+skip(N) --> [_], { succ(N0, N) }, skip(N0).
+
+line([0'\n]) --> [0'\n], !.
+line([C|Cs]) --> [C], line(Cs).
