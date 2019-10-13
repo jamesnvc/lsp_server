@@ -199,8 +199,7 @@ handle_msg("textDocument/didChange", Msg, false) :-
     _{uri: Uri} :< TextDoc,
     atom_concat('file://', Path, Uri),
     handle_doc_changes(Path, Changes),
-    doc_text(Path, NewText),
-    debug(server, "doc ~w now '~s'", [Path, NewText]).
+    doc_text(Path, NewText).
 handle_msg("textDocument/didSave", Msg, Resp) :-
     _{params: Params} :< Msg,
     check_errors_resp(Params.textDocument.uri, Resp).
