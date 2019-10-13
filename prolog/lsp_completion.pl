@@ -22,7 +22,8 @@ prefix_at(File, Position, Prefix) :-
     doc_text_fallback(File, DocCodes),
     setup_call_cleanup(
         open_string(DocCodes, Stream),
-        ( linechar_offset(Stream, Position, Offset),
+        ( linechar_offset(Stream, Position, _),
+          seek(Stream, -1, current, Offset),
           get_prefix_codes(Stream, Offset, PrefixCodes),
           string_codes(Prefix, PrefixCodes) ),
         close(Stream)
