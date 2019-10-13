@@ -4,7 +4,8 @@
                       relative_ref_location/4,
                       help_at_position/5,
                       clause_in_file_at_position/3,
-                      clause_variable_positions/3
+                      clause_variable_positions/3,
+                      seek_to_line/2
                      ]).
 
 :- use_module(library(prolog_xref)).
