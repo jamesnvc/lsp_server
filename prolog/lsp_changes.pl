@@ -1,5 +1,5 @@
 :- module(lsp_changes, [handle_doc_changes/2,
-                        doc_text/2]).
+                        doc_text_fallback/2]).
 
 :- use_module(library(list_util), [drop/3,
                                    split_at/4,
