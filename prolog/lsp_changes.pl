@@ -41,6 +41,7 @@ replace_codes(Text, StartLine, StartChar, ReplaceLen, ReplaceText, NewText) :-
     append(ReplaceText, KeepText, Tail),
     append(PrefixText, Tail, NewText), !.
 
+% [TODO] re-write this without all the appends
 skip_to_start(Text, StartLine, StartChar, Prefix, Suffix) :-
     ( numlist(1, StartLine, NLines) ; NLines = [] ),
     foldl([_, Prefix0-Suffix0, Prefix1-Suffix1]>>(
