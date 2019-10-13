@@ -10,6 +10,8 @@
 :- use_module(lsp_utils).
 :- use_module(lsp_checking, [check_errors/2]).
 :- use_module(lsp_parser, [lsp_request//1]).
+:- use_module(lsp_changes, [handle_doc_changes/2,
+                            doc_text/2]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -191,7 +193,14 @@ handle_msg("textDocument/didOpen", Msg, Resp) :-
     atom_concat('file://', Path, FileUri),
     ( loaded_source(Path) ; assertz(loaded_source(Path)) ),
     check_errors_resp(FileUri, Resp).
-handle_msg("textDocument/didChange", _, false).
+handle_msg("textDocument/didChange", Msg, false) :-
+    _{params: _{textDocument: TextDoc,
+                contentChanges: Changes}} :< Msg,
+    _{uri: Uri} :< TextDoc,
+    atom_concat('file://', Path, Uri),
+    handle_doc_changes(Path, Changes),
+    doc_text(Path, NewText),
+    debug(server, "doc ~w now '~s'", [Path, NewText]).
 handle_msg("textDocument/didSave", Msg, Resp) :-
     _{params: Params} :< Msg,
     check_errors_resp(Params.textDocument.uri, Resp).
