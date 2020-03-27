@@ -1,6 +1,8 @@
 :- module(lsp_changes, [handle_doc_changes/2,
                         doc_text_fallback/2]).
 
+:- use_module(library(readutil), [read_file_to_codes/3]).
+
 :- dynamic doc_text/2.
 
 handle_doc_changes(_, []) :- !.

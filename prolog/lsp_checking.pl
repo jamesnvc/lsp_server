@@ -5,6 +5,7 @@
                                     prolog_var_name//1,
                                     whites//0,
                                     integer//1]).
+:- use_module(library(prolog_xref), [xref_clean/1, xref_source/1]).
 :- use_module(lsp_utils, [clause_variable_positions/3]).
 
 :- dynamic message_hook/3.

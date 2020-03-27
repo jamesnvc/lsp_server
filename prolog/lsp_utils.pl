@@ -5,13 +5,18 @@
                       help_at_position/5,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
-                      seek_to_line/2
+                      seek_to_line/2,
+                      linechar_offset/3
                      ]).
 
+:- use_module(library(apply), [maplist/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help), [help_html/3, help_objects/3]).
 :- use_module(library(lynx/html_text), [html_text/1]).
+:- use_module(library(solution_sequences), [distinct/2]).
+:- use_module(library(lists), [member/2]).
+:- use_module(library(sgml), [load_html/3]).
 
 :- if(current_predicate(xref_called/5)).
 %! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.
