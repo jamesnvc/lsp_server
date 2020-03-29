@@ -1,10 +1,14 @@
 :- module(lsp_checking, [check_errors/2]).
 
+:- use_module(library(assoc), [list_to_assoc/2,
+                               get_assoc/3]).
+:- use_module(library(debug), [debug/3]).
 :- use_module(library(dcg/basics), [string//1,
                                     string_without//2,
                                     prolog_var_name//1,
                                     whites//0,
                                     integer//1]).
+:- use_module(library(lists), [member/2]).
 :- use_module(library(prolog_xref), [xref_clean/1, xref_source/1]).
 :- use_module(lsp_utils, [clause_variable_positions/3]).
 
