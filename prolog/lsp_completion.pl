@@ -1,5 +1,9 @@
 :- module(lsp_completion, [completions_at/3]).
 
+:- use_module(library(apply), [maplist/3]).
+:- use_module(library(lists), [numlist/3]).
+:- use_module(library(prolog_xref), [xref_defined/3, xref_source/2]).
+:- use_module(library(yall)).
 :- use_module(lsp_utils, [linechar_offset/3]).
 :- use_module(lsp_changes, [doc_text_fallback/2]).
 
