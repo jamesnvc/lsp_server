@@ -16,6 +16,7 @@
 :- use_module(lsp_parser, [lsp_request//1]).
 :- use_module(lsp_changes, [handle_doc_changes/2]).
 :- use_module(lsp_completion, [completions_at/3]).
+:- use_module(lsp_colours, [file_colours/2, token_types/1, token_modifiers/1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -120,23 +121,16 @@ server_capabilities(
       colorProvider: true,
       foldingRangeProvider: false,
       executeCommandProvider: _{commands: ["query", "assert"]},
-      semanticTokensProvider: _{legend: _{tokenTypes: [namespace,
-                                                       type,
-                                                       parameter,
-                                                       variable,
-                                                       function,
-                                                       comment,
-                                                       string,
-                                                       number],
-                                          tokenModifiers: [declaration,
-                                                           definition,
-                                                           documentation]},
+      semanticTokensProvider: _{legend: _{tokenTypes: TokenTypes,
+                                          tokenModifiers: TokenModifiers},
                                 range: true,
                                 full: _{delta: true }},
       workspace: _{workspaceFolders: _{supported: true,
                                        changeNotifications: true}}
      }
-).
+) :-
+    token_types(TokenTypes),
+    token_modifiers(TokenModifiers).
 
 :- dynamic loaded_source/1.
 
@@ -213,8 +207,9 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
 handle_msg("textDocument/semanticTokens", Msg, _{id: Id, result: _{data: Highlights}}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}} :< Params,
-    debug(server, "Semantic highlighting ~w", [Uri]),
-    Highlights = [0, 0, 8, 0, 0].
+    atom_concat('file://', Path, Uri), !,
+    xref_source(Path),
+    file_colours(Path, Highlights).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
