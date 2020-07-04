@@ -73,30 +73,37 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
 colour_terms_to_tuples([], _-[], _, _, _, _).
 colour_terms_to_tuples([Colour|Colours], Tuples-T0,
                        Stream, Dict,
-                       LastLine, LastChar) :-
+                       LastOffset, LastLine, LastChar) :-
     colour_term_to_tuple(Stream, Dict,
-                         LastLine, LastChar,
-                         ThisLine, ThisChar,
+                         LastOffset, LastLine, LastChar,
+                         ThisOffset, ThisLine, ThisChar,
                          Colour,
                          T0-T1), !,
     colour_terms_to_tuples(Colours, Tuples-T1,
                            Stream, Dict,
-                           ThisLine, ThisChar).
+                           ThisOffset, ThisLine, ThisChar).
 colour_terms_to_tuples([colour(Type, _, _)|Colours], Tuples, Stream, Dict,
-                       ThisLine, ThisChar) :-
-    debug(server, "Unhighlighted ~w", [Type]),
+                       ThisOffset, ThisLine, ThisChar) :-
+    %% debug(server, "Unhighlighted ~w", [Type]),
     colour_terms_to_tuples(Colours, Tuples,
                            Stream, Dict,
-                           ThisLine, ThisChar).
+                           ThisOffset, ThisLine, ThisChar).
 
-colour_term_to_tuple(Stream, Dict, LastLine, LastChar,
-                     Line, Char,
+colour_term_to_tuple(Stream, Dict,
+                     LastOffset, LastLine, LastChar,
+                     Offset, Line, Char,
                      colour(Type, Offset, Len),
                      [DeltaLine, DeltaStart, Len, TypeCode, ModMask|T1]-T1) :-
     colour_type(Type, TypeCategory, Mods),
     get_dict(TypeCategory, Dict, TypeCode), !,
     mods_mask(Mods, ModMask),
-    offset_line_char(Stream, Offset, position(Line, Char)),
+    Seek is Offset - LastOffset,
+    setup_call_cleanup(open_null_stream(NullStream),
+                       copy_stream_data(Stream, NullStream, Seek),
+                       close(NullStream)),
+    stream_property(Stream, position(Pos)),
+    stream_position_data(line_count, Pos, Line),
+    stream_position_data(line_position, Pos, Char),
     ( Line == LastLine
     -> ( DeltaLine = 0,
          DeltaStart is Char - LastChar
