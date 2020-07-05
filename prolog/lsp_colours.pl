@@ -37,7 +37,6 @@ token_types_dict(Dict) :-
             Pairs),
     dict_create(Dict, _, Pairs).
 
-
 %! file_colours(+File, -Colours) is det.
 %
 %  True when =Colours= is a list of colour information
@@ -132,7 +131,7 @@ colour_type(int,                   number,    []).
 colour_type(comment(line),         comment,   []).
 colour_type(comment(structured),   comment,   [documentation]).
 colour_type(arity,                 parameter, []).
-colour_type(functor,                struct, []).
+colour_type(functor,               struct, []).
 
 mods_mask(Mods, Mask) :-
     mods_mask(Mods, 0, Mask).
