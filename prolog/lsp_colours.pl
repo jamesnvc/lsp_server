@@ -9,8 +9,6 @@
 :- use_module(library(prolog_colour), [prolog_colourise_stream/3]).
 :- use_module(library(yall)).
 
-:- use_module(lsp_utils, [offset_line_char/3]).
-
 token_types([namespace,
              type,
              parameter,
@@ -40,7 +38,7 @@ token_types_dict(Dict) :-
     dict_create(Dict, _, Pairs).
 
 
-%! file_colors(+File, -Colours) is det.
+%! file_colours(+File, -Colours) is det.
 %
 %  True when =Colours= is a list of colour information
 %  corresponding to the file =File=.
@@ -66,11 +64,11 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
         open(File, read, S),
         colour_terms_to_tuples(ColourTerms, Nums-Nums,
                                S, TokenDict,
-                               0, 0),
+                               0, 0, 0),
         close(S)
     ).
 
-colour_terms_to_tuples([], _-[], _, _, _, _).
+colour_terms_to_tuples([], _-[], _, _, _, _, _).
 colour_terms_to_tuples([Colour|Colours], Tuples-T0,
                        Stream, Dict,
                        LastOffset, LastLine, LastChar) :-
@@ -82,7 +80,8 @@ colour_terms_to_tuples([Colour|Colours], Tuples-T0,
     colour_terms_to_tuples(Colours, Tuples-T1,
                            Stream, Dict,
                            ThisOffset, ThisLine, ThisChar).
-colour_terms_to_tuples([colour(Type, _, _)|Colours], Tuples, Stream, Dict,
+colour_terms_to_tuples([colour(_Type, _, _)|Colours], Tuples,
+                       Stream, Dict,
                        ThisOffset, ThisLine, ThisChar) :-
     %% debug(server, "Unhighlighted ~w", [Type]),
     colour_terms_to_tuples(Colours, Tuples,
@@ -95,8 +94,8 @@ colour_term_to_tuple(Stream, Dict,
                      colour(Type, Offset, Len),
                      [DeltaLine, DeltaStart, Len, TypeCode, ModMask|T1]-T1) :-
     colour_type(Type, TypeCategory, Mods),
-    get_dict(TypeCategory, Dict, TypeCode), !,
-    mods_mask(Mods, ModMask),
+    get_dict(TypeCategory, Dict, TypeCode),
+    mods_mask(Mods, ModMask), !,
     Seek is Offset - LastOffset,
     setup_call_cleanup(open_null_stream(NullStream),
                        copy_stream_data(Stream, NullStream, Seek),
