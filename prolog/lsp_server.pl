@@ -123,8 +123,9 @@ server_capabilities(
       executeCommandProvider: _{commands: ["query", "assert"]},
       semanticTokensProvider: _{legend: _{tokenTypes: TokenTypes,
                                           tokenModifiers: TokenModifiers},
-                                range: true,
-                                full: _{delta: true }},
+                                % [TODO] implement deltas & ranges
+                                range: false,
+                                full: _{delta: false}},
       workspace: _{workspaceFolders: _{supported: true,
                                        changeNotifications: true}}
      }
