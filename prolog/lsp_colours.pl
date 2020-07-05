@@ -46,10 +46,11 @@ file_colours(File, Tuples) :-
     setup_call_cleanup(
         message_queue_create(Queue),
         ( thread_create(file_colours_helper(Queue, File), ThreadId),
-          await_messages(Queue, Colours, Colours) ),
+          await_messages(Queue, Colours0, Colours0) ),
         ( thread_join(ThreadId),
           message_queue_destroy(Queue) )
     ),
+    sort(2, @=<, Colours0, Colours),
     flatten_colour_terms(File, Colours, Tuples).
 
 %! flatten_colour_terms(+File, +ColourTerms, -Nums) is det.
