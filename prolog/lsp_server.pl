@@ -205,7 +205,9 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     atom_concat('file://', Path, Uri),
     succ(Line0, Line1),
     completions_at(Path, line_char(Line1, Char0), Completions).
-handle_msg("textDocument/semanticTokens", Msg, _{id: Id, result: _{data: Highlights}}) :-
+handle_msg("textDocument/semanticTokens", Msg, Resp) :-
+    handle_msg("textDocument/semanticTokens/full", Msg, Resp).
+handle_msg("textDocument/semanticTokens/full", Msg, _{id: Id, result: _{data: Highlights}}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}} :< Params,
     atom_concat('file://', Path, Uri), !,
