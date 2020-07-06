@@ -81,10 +81,12 @@ colour_terms_to_tuples([Colour|Colours], Tuples-T0,
     colour_terms_to_tuples(Colours, Tuples-T1,
                            Stream, Dict,
                            ThisOffset, ThisLine, ThisChar).
-colour_terms_to_tuples([colour(_Type, _, _)|Colours], Tuples,
+colour_terms_to_tuples([colour(Type, _, _)|Colours], Tuples,
                        Stream, Dict,
                        ThisOffset, ThisLine, ThisChar) :-
-    %% debug(server, "Unhighlighted ~w", [Type]),
+    %% ( Type = goal_term(T, _)
+    %% -> debug(server, "Unhighlighted goal term ~w", [T])
+    %% ; true),
     colour_terms_to_tuples(Colours, Tuples,
                            Stream, Dict,
                            ThisOffset, ThisLine, ThisChar).
@@ -113,25 +115,26 @@ colour_term_to_tuple(Stream, Dict,
       )
     ).
 
-% colour_type(directive,           macro,     []).
-colour_type(neck(directive),       operator,  []).
-colour_type(neck(clause),          operator,  []).
-colour_type(goal_term(built_in,    A),        macro,    []) :-
+% colour_type(directive,              macro,     []).
+colour_type(neck(directive),          operator,  []).
+colour_type(neck(clause),             operator,  []).
+colour_type(goal_term(built_in,       A),        macro,     []) :-
     atom(A).
-colour_type(goal_term(undefined,   _),        function, []).
-colour_type(goal_term(imported(_), _),        function, []).
-colour_type(atom,                  enum,      []).
-colour_type(var,                   variable,  []).
-colour_type(fullstop,              operator,  []).
-colour_type(control,               operator,  []).
-colour_type(dict_key,              property,  []).
-colour_type(dict_sep,              operator,  []).
-colour_type(string,                string,    []).
-colour_type(int,                   number,    []).
-colour_type(comment(line),         comment,   []).
-colour_type(comment(structured),   comment,   [documentation]).
-colour_type(arity,                 parameter, []).
-colour_type(functor,               struct, []).
+colour_type(goal_term(undefined,      _),        function,  []).
+colour_type(goal_term(imported(_),    _),        function,  []).
+colour_type(goal_term(('dynamic'(_)), _),      parameter, []).
+colour_type(atom,                     enum,      []).
+colour_type(var,                      variable,  []).
+colour_type(fullstop,                 operator,  []).
+colour_type(control,                  operator,  []).
+colour_type(dict_key,                 property,  []).
+colour_type(dict_sep,                 operator,  []).
+colour_type(string,                   string,    []).
+colour_type(int,                      number,    []).
+colour_type(comment(line),            comment,   []).
+colour_type(comment(structured),      comment,   [documentation]).
+colour_type(arity,                    parameter, []).
+colour_type(functor,                  struct,    []).
 
 mods_mask(Mods, Mask) :-
     mods_mask(Mods, 0, Mask).
