@@ -1,4 +1,5 @@
 :- module(lsp_colours, [file_colours/2,
+                        file_range_colours/4,
                         token_types/1,
                         token_modifiers/1]).
 
@@ -6,8 +7,13 @@
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [numlist/3, member/2, nth0/3]).
-:- use_module(library(prolog_colour), [prolog_colourise_stream/3]).
+:- use_module(library(prolog_colour), [prolog_colourise_stream/3,
+                                       prolog_colourise_term/4]).
+:- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(yall)).
+
+:- use_module(lsp_utils, [seek_to_line/2,
+                          linechar_offset/3]).
 
 token_types([namespace,
              type,
@@ -45,6 +51,18 @@ file_colours(File, Tuples) :-
     setup_call_cleanup(
         message_queue_create(Queue),
         ( thread_create(file_colours_helper(Queue, File), ThreadId),
+          await_messages(Queue, Colours0, Colours0) ),
+        ( thread_join(ThreadId),
+          message_queue_destroy(Queue) )
+    ),
+    sort(2, @=<, Colours0, Colours),
+    flatten_colour_terms(File, Colours, Tuples).
+
+file_range_colours(File, Start, End, Tuples) :-
+    setup_call_cleanup(
+        message_queue_create(Queue),
+        ( thread_create(file_term_colours_helper(Queue, File, Start, End),
+                        ThreadId),
           await_messages(Queue, Colours0, Colours0) ),
         ( thread_join(ThreadId),
           message_queue_destroy(Queue) )
@@ -170,7 +188,7 @@ await_messages(Q, H, T) :-
 file_colours_helper(Queue, File) :-
     setup_call_cleanup(
         open(File, read, S),
-        prolog_colourise_stream(
+        prolog_colourise_term(
             S, File,
             {Queue}/[Cat, Start, Len]>>(
                 thread_send_message(Queue, colour(Cat, Start, Len)))
@@ -178,3 +196,42 @@ file_colours_helper(Queue, File) :-
         close(S)
     ),
     thread_send_message(Queue, done).
+
+nearest_term_start(Stream, StartL, TermStart) :-
+    read_source_term_at_location(Stream, _, [line(StartL), error(Error)]),
+    ( nonvar(Error)
+    -> ( LineBack is StartL - 1,
+         nearest_term_start(Stream, LineBack, TermStart) )
+    ;  TermStart = StartL
+    ).
+
+file_term_colours_helper(Queue, File,
+                         line_char(StartL, StartC),
+                         End) :-
+    setup_call_cleanup(
+        open(File, read, S),
+        ( nearest_term_start(S, StartL, TermLine),
+          seek(S, 0, bof, _),
+          seek_to_line(S, TermLine),
+          colourise_terms_to_position(Queue, File, S, End)
+        ),
+        close(S)
+    ),
+    thread_send_message(Queue, done).
+
+colourise_terms_to_position(Queue, File, Stream, End) :-
+    prolog_colourise_term(
+        Stream, File,
+        {Queue}/[Cat, Start, Len]>>(
+            thread_send_message(Queue, colour(Cat, Start, Len))),
+        []),
+    stream_property(Stream, position(Pos)),
+    stream_position_data(line_count, Pos, Line),
+    stream_position_data(line_position, Pos, Char),
+    End = line_char(EndL, EndC),
+    ( EndL =< Line
+    -> true
+    ; ( EndL == Line, EndC =< Char )
+      -> true
+    ; read_terms_to_position(Queue, File, Stream, End)
+    ).

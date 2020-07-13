@@ -9,14 +9,19 @@
 :- use_module(library(http/json), [atom_json_dict/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
+:- use_module(library(statistics), [time/1]).
 :- use_module(library(utf8), [utf8_codes//1]).
 :- use_module(library(yall)).
+
 :- use_module(lsp_utils).
 :- use_module(lsp_checking, [check_errors/2]).
 :- use_module(lsp_parser, [lsp_request//1]).
 :- use_module(lsp_changes, [handle_doc_changes/2]).
 :- use_module(lsp_completion, [completions_at/3]).
-:- use_module(lsp_colours, [file_colours/2, token_types/1, token_modifiers/1]).
+:- use_module(lsp_colours, [file_colours/2,
+                            file_range_colours/4,
+                            token_types/1,
+                            token_modifiers/1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -124,7 +129,7 @@ server_capabilities(
       semanticTokensProvider: _{legend: _{tokenTypes: TokenTypes,
                                           tokenModifiers: TokenModifiers},
                                 % [TODO] implement deltas & ranges
-                                range: false,
+                                range: true,
                                 full: _{delta: false}},
       workspace: _{workspaceFolders: _{supported: true,
                                        changeNotifications: true}}
@@ -207,12 +212,28 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     completions_at(Path, line_char(Line1, Char0), Completions).
 handle_msg("textDocument/semanticTokens", Msg, Resp) :-
     handle_msg("textDocument/semanticTokens/full", Msg, Resp).
-handle_msg("textDocument/semanticTokens/full", Msg, _{id: Id, result: _{data: Highlights}}) :-
+handle_msg("textDocument/semanticTokens/full", Msg,
+           _{id: Id, result: _{data: Highlights}}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}} :< Params,
     atom_concat('file://', Path, Uri), !,
     xref_source(Path),
     file_colours(Path, Highlights).
+handle_msg("textDocument/semanticTokens/range", Msg,
+           _{id: Id, result: _{data: Highlights}}) :-
+    debug(server, "highlight range ~w", [Msg]),
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Uri}, range: Range} :< Params,
+    _{start: _{line: StartLine0, character: StartChar},
+      end: _{line: EndLine0, character: EndChar}} :< Range,
+    atom_concat('file://', Path, Uri), !,
+    succ(StartLine0, StartLine), succ(EndLine0, EndLine),
+    xref_source(Path),
+    file_range_colours(Path,
+                       line_char(StartLine, StartChar),
+                       line_char(EndLine, EndChar),
+                       Highlights),
+    debug(server, "highlights ~w", [Highlights]).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
