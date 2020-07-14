@@ -188,7 +188,7 @@ await_messages(Q, H, T) :-
 file_colours_helper(Queue, File) :-
     setup_call_cleanup(
         open(File, read, S),
-        prolog_colourise_term(
+        prolog_colourise_stream(
             S, File,
             {Queue}/[Cat, Start, Len]>>(
                 thread_send_message(Queue, colour(Cat, Start, Len)))
