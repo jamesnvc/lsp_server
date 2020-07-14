@@ -128,8 +128,8 @@ server_capabilities(
       executeCommandProvider: _{commands: ["query", "assert"]},
       semanticTokensProvider: _{legend: _{tokenTypes: TokenTypes,
                                           tokenModifiers: TokenModifiers},
-                                % [TODO] implement deltas & ranges
                                 range: true,
+                                % [TODO] implement deltas
                                 full: _{delta: false}},
       workspace: _{workspaceFolders: _{supported: true,
                                        changeNotifications: true}}
@@ -210,8 +210,6 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     atom_concat('file://', Path, Uri),
     succ(Line0, Line1),
     completions_at(Path, line_char(Line1, Char0), Completions).
-handle_msg("textDocument/semanticTokens", Msg, Resp) :-
-    handle_msg("textDocument/semanticTokens/full", Msg, Resp).
 handle_msg("textDocument/semanticTokens/full", Msg,
            _{id: Id, result: _{data: Highlights}}) :-
     _{id: Id, params: Params} :< Msg,
@@ -221,7 +219,6 @@ handle_msg("textDocument/semanticTokens/full", Msg,
     file_colours(Path, Highlights).
 handle_msg("textDocument/semanticTokens/range", Msg,
            _{id: Id, result: _{data: Highlights}}) :-
-    debug(server, "highlight range ~w", [Msg]),
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}, range: Range} :< Params,
     _{start: _{line: StartLine0, character: StartChar},
@@ -232,8 +229,7 @@ handle_msg("textDocument/semanticTokens/range", Msg,
     file_range_colours(Path,
                        line_char(StartLine, StartChar),
                        line_char(EndLine, EndChar),
-                       Highlights),
-    debug(server, "highlights ~w", [Highlights]).
+                       Highlights).
 % notifications (no response)
 handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
