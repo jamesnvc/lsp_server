@@ -212,6 +212,7 @@ file_term_colours_helper(Queue, File,
         open(File, read, S),
         ( nearest_term_start(S, StartL, TermLine),
           seek(S, 0, bof, _),
+          set_stream_position(S, '$stream_position'(0,0,0,0)),
           seek_to_line(S, TermLine),
           colourise_terms_to_position(Queue, File, S, 0-0, End)
         ),
