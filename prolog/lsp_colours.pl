@@ -213,13 +213,13 @@ file_term_colours_helper(Queue, File,
         ( nearest_term_start(S, StartL, TermLine),
           seek(S, 0, bof, _),
           seek_to_line(S, TermLine),
-          colourise_terms_to_position(Queue, File, S, End)
+          colourise_terms_to_position(Queue, File, S, 0-0, End)
         ),
         close(S)
     ),
     thread_send_message(Queue, done).
 
-colourise_terms_to_position(Queue, File, Stream, End) :-
+colourise_terms_to_position(Queue, File, Stream, Prev, End) :-
     prolog_colourise_term(
         Stream, File,
         {Queue}/[Cat, Start, Len]>>(
@@ -229,9 +229,11 @@ colourise_terms_to_position(Queue, File, Stream, End) :-
     stream_position_data(line_count, Pos, Line),
     stream_position_data(line_position, Pos, Char),
     End = line_char(EndL, EndC),
-    ( EndL =< Line
+    ( Line-Char == Prev
     -> true
-    ; ( EndL == Line, EndC =< Char )
-      -> true
-    ; read_terms_to_position(Queue, File, Stream, End)
+    ;  EndL =< Line
+    -> true
+    ;  ( EndL == Line, EndC =< Char )
+    -> true
+    ; colourise_terms_to_position(Queue, File, Stream, Line-Char, End)
     ).
