@@ -12,6 +12,7 @@
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(yall)).
 
+:- use_module(lsp_changes, [doc_text/2]).
 :- use_module(lsp_utils, [seek_to_line/2,
                           linechar_offset/3]).
 
@@ -70,6 +71,11 @@ file_range_colours(File, Start, End, Tuples) :-
     sort(2, @=<, Colours0, Colours),
     flatten_colour_terms(File, Colours, Tuples).
 
+file_stream(File, S) :-
+    doc_text(File, Changes)
+    -> open_string(Changes, S)
+    ;  open(File, read, S).
+
 %! flatten_colour_terms(+File, +ColourTerms, -Nums) is det.
 %
 %  Convert the list of =ColourTerms= like =colour(Category, Start,
@@ -79,7 +85,7 @@ file_range_colours(File, Start, End, Tuples) :-
 flatten_colour_terms(File, ColourTerms, Nums) :-
     token_types_dict(TokenDict),
     setup_call_cleanup(
-        open(File, read, S),
+        file_stream(File, S),
         ( set_stream_position(S, '$stream_position'(0,0,0,0)),
           colour_terms_to_tuples(ColourTerms, Nums-Nums,
                                  S, TokenDict,
@@ -187,7 +193,7 @@ await_messages(Q, H, T) :-
 %  all of the terms.
 file_colours_helper(Queue, File) :-
     setup_call_cleanup(
-        open(File, read, S),
+        file_stream(File, S),
         prolog_colourise_stream(
             S, File,
             {Queue}/[Cat, Start, Len]>>(
@@ -209,7 +215,7 @@ file_term_colours_helper(Queue, File,
                          line_char(StartL, StartC),
                          End) :-
     setup_call_cleanup(
-        open(File, read, S),
+        file_stream(File, S),
         ( nearest_term_start(S, StartL, TermLine),
           seek(S, 0, bof, _),
           set_stream_position(S, '$stream_position'(0,0,0,0)),
