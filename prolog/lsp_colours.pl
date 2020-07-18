@@ -93,7 +93,9 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
         close(S)
     ).
 
-colour_terms_to_tuples([], _-[], _, _, _, _, _).
+colour_terms_to_tuples([], _-[],
+                       _Stream, _Dict,
+                       _Offset, _Line, _Char).
 colour_terms_to_tuples([Colour|Colours], Tuples-T0,
                        Stream, Dict,
                        LastOffset, LastLine, LastChar) :-
@@ -105,7 +107,7 @@ colour_terms_to_tuples([Colour|Colours], Tuples-T0,
     colour_terms_to_tuples(Colours, Tuples-T1,
                            Stream, Dict,
                            ThisOffset, ThisLine, ThisChar).
-colour_terms_to_tuples([colour(Type, _, _)|Colours], Tuples,
+colour_terms_to_tuples([colour(_Type, _, _)|Colours], Tuples,
                        Stream, Dict,
                        ThisOffset, ThisLine, ThisChar) :-
     %% ( Type = goal_term(T, _)
@@ -212,7 +214,7 @@ nearest_term_start(Stream, StartL, TermStart) :-
     ).
 
 file_term_colours_helper(Queue, File,
-                         line_char(StartL, StartC),
+                         line_char(StartL, _StartC),
                          End) :-
     setup_call_cleanup(
         file_stream(File, S),
