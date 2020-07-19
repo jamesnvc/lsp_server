@@ -2,14 +2,16 @@
                       defined_at/3,
                       name_callable/2,
                       relative_ref_location/4,
-                      help_at_position/5,
+                      help_at_position/4,
+                      help_excerpt/2,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
                       seek_to_line/2,
                       linechar_offset/3
                      ]).
 
-:- use_module(library(apply), [maplist/3]).
+:- use_module(library(apply_macros)).
+:- use_module(library(apply), [maplist/3, exclude/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help), [help_html/3, help_objects/3]).
@@ -127,10 +129,16 @@ relative_ref_location(_, Goal, imported(Path), Location) :-
     xref_defined(Path, Goal, Loc),
     relative_ref_location(ThereUri, Goal, Loc, Location).
 
-help_at_position(Path, Line1, Char0, Id, _{id: Id, result: _{contents: S}}) :-
+help_at_position(Path, Line1, Char0, S) :-
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
-    predicate_help(Path, Clause, S), !.
-help_at_position(_, _, _, Id, _{id: Id, result: null}).
+    predicate_help(Path, Clause, S).
+
+help_excerpt(HelpFull, HelpShort) :-
+    split_string(HelpFull, "\n", " ", Lines0),
+    exclude([Line]>>string_concat("Availability: ", _, Line),
+            Lines0, Lines1),
+    exclude([""]>>true, Lines1, Lines2),
+    Lines2 = [HelpShort|_].
 
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),

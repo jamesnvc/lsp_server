@@ -151,14 +151,16 @@ handle_msg("initialize", Msg,
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
     debug(server, "recieved shutdown message", []).
-handle_msg("textDocument/hover", Msg, Response) :-
+handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
     _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
-    catch(help_at_position(Path, Line1, Char0, Id, Response),
-          Err, (debug(server(hover), "error getting help ~w", [Err]),
-                Response = _{id: Id, result: null})).
+    ( ( help_at_position(Path, Line1, Char0, HelpFull),
+        help_excerpt(HelpFull, HelpShort),
+        atomics_to_string([HelpShort, HelpFull], "\n", Help) )
+    -> Response = _{contents: _{kind: plaintext, value: Help}}
+    ;  Response = null).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
     atom_concat('file://', Path, Doc), !,
