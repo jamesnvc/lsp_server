@@ -59,6 +59,11 @@ file_colours(File, Tuples) :-
     sort(2, @=<, Colours0, Colours),
     flatten_colour_terms(File, Colours, Tuples).
 
+%! file_range_colours(+File, +Start, +End, -Colours) is det.
+%
+%  True when =Colours= is a list of colour information corresponding
+%  to file =File= covering the terms between =Start= and =End=. Note
+%  that it may go beyond either bound.
 file_range_colours(File, Start, End, Tuples) :-
     setup_call_cleanup(
         message_queue_create(Queue),
