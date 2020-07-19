@@ -1,4 +1,15 @@
 :- module(lsp_completion, [completions_at/3]).
+/** <module> LSP Completion
+
+This module implements code completion, based on defined predicates in
+the file & imports.
+
+Uses =lsp_changes= in order to see the state of the buffer being edited.
+
+@see lsp_changes:doc_text_fallback/2
+
+@author James Cash
+*/
 
 :- use_module(library(apply), [maplist/3]).
 :- use_module(library(lists), [numlist/3]).

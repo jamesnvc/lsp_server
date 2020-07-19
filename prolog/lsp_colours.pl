@@ -2,6 +2,12 @@
                         file_range_colours/4,
                         token_types/1,
                         token_modifiers/1]).
+/** <module> LSP Colours
+
+Module with predicates for colourizing Prolog code, via library(prolog_colour).
+
+@author James Cash
+*/
 
 :- use_module(library(apply), [maplist/4]).
 :- use_module(library(apply_macros)).

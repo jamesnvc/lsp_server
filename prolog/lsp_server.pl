@@ -1,4 +1,10 @@
 :- module(lsp_server, [main/0]).
+/** <module> LSP Server
+
+The main entry point for the Language Server implementation.
+
+@author James Cash
+*/
 
 :- use_module(library(apply), [maplist/2]).
 :- use_module(library(debug), [debug/3, debug/1]).

@@ -1,4 +1,10 @@
 :- module(lsp_parser, [lsp_request//1]).
+/** <module> LSP Parser
+
+Module for parsing the body & headers from an LSP client.
+
+@author James Cash
+*/
 
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 :- use_module(library(codesio), [open_codes_stream/2]).

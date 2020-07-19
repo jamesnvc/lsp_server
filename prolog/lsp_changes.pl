@@ -1,10 +1,20 @@
 :- module(lsp_changes, [handle_doc_changes/2,
                         doc_text_fallback/2]).
+/** <module> LSP changes
+
+Module for tracking edits to the source, in order to be able to act on
+the code as it is in the editor buffer, before saving.
+
+@author James Cash
+*/
 
 :- use_module(library(readutil), [read_file_to_codes/3]).
 
 :- dynamic doc_text/2.
 
+%! handle_doc_changes(+File:atom, +Changes:list) is det.
+%
+%  Track =Changes= to the file =File=.
 handle_doc_changes(_, []) :- !.
 handle_doc_changes(Path, [Change|Changes]) :-
     handle_doc_change(Path, Change),
@@ -26,6 +36,11 @@ handle_doc_change(Path, Change) :-
     atom_codes(Change.text, TextCodes),
     assertz(doc_text(Path, TextCodes)).
 
+%! doc_text_fallback(+Path:atom, -Text:text) is det.
+%
+%  Get the contents of the file at =Path=, either with the edits we've
+%  been tracking in memory, or from the file on disc if no edits have
+%  occured.
 doc_text_fallback(Path, Text) :-
     doc_text(Path, Text), !.
 doc_text_fallback(Path, Text) :-

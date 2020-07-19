@@ -9,6 +9,13 @@
                       seek_to_line/2,
                       linechar_offset/3
                      ]).
+/** <module> LSP Utils
+
+Module with a bunch of helper predicates for looking through prolog
+source and stuff.
+
+@author James Cash
+*/
 
 :- use_module(library(apply_macros)).
 :- use_module(library(apply), [maplist/3, exclude/3]).
