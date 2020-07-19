@@ -156,9 +156,7 @@ handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
     atom_concat('file://', Path, Doc),
     Line1 is Line0 + 1,
-    ( ( help_at_position(Path, Line1, Char0, HelpFull),
-        help_excerpt(HelpFull, HelpShort),
-        atomics_to_string([HelpShort, HelpFull], "\n", Help) )
+    (  help_at_position(Path, Line1, Char0, Help)
     -> Response = _{contents: _{kind: plaintext, value: Help}}
     ;  Response = null).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-

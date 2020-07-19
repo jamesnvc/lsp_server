@@ -17,7 +17,7 @@
 :- use_module(library(help), [help_html/3, help_objects/3]).
 :- use_module(library(lynx/html_text), [html_text/1]).
 :- use_module(library(solution_sequences), [distinct/2]).
-:- use_module(library(lists), [member/2]).
+:- use_module(library(lists), [append/3, member/2, selectchk/4]).
 :- use_module(library(sgml), [load_html/3]).
 
 :- if(current_predicate(xref_called/5)).
@@ -129,16 +129,28 @@ relative_ref_location(_, Goal, imported(Path), Location) :-
     xref_defined(Path, Goal, Loc),
     relative_ref_location(ThereUri, Goal, Loc, Location).
 
+%! help_at_position(+Path:atom, +Line:integer, +Char:integer, -Help:string) is det.
+%
+%  =Help= is the documentation for the term under the cursor at line
+%  =Line=, character =Char= in the file =Path=.
 help_at_position(Path, Line1, Char0, S) :-
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
-    predicate_help(Path, Clause, S).
+    predicate_help(Path, Clause, S0),
+    format_help(S0, S).
 
-help_excerpt(HelpFull, HelpShort) :-
+%! format_help(+Help0, -Help1) is det.
+%
+%  Reformat help string, so the first line is the signature of the predicate.
+format_help(HelpFull, Help) :-
     split_string(HelpFull, "\n", " ", Lines0),
     exclude([Line]>>string_concat("Availability: ", _, Line),
             Lines0, Lines1),
     exclude([""]>>true, Lines1, Lines2),
-    Lines2 = [HelpShort|_].
+    Lines2 = [HelpShort|_],
+    split_string(HelpFull, "\n", "", HelpLines),
+    selectchk(HelpShort, HelpLines, "", HelpLines0),
+    append([HelpShort], HelpLines0, HelpLines1),
+    atomic_list_concat(HelpLines1, "\n", Help).
 
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),
