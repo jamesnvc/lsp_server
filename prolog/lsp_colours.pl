@@ -12,7 +12,7 @@ Module with predicates for colourizing Prolog code, via library(prolog_colour).
 :- use_module(library(apply), [maplist/4]).
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3]).
-:- use_module(library(lists), [numlist/3, member/2, nth0/3]).
+:- use_module(library(lists), [numlist/3, nth0/3, memberchk/2]).
 :- use_module(library(prolog_colour), [prolog_colourise_stream/3,
                                        prolog_colourise_term/4]).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
@@ -24,22 +24,38 @@ Module with predicates for colourizing Prolog code, via library(prolog_colour).
 
 token_types([namespace,
              type,
+             class,
+             enum,
+             interface,
+             struct,
+             typeParameter,
              parameter,
              variable,
+             property,
+             enumMember,
+             event,
              function,
+             member,
+             macro,
+             keyword,
+             modifier,
              comment,
              string,
              number,
-             operator,
-             macro,
-             enum,
-             class,
-             property,
-             struct
+             regexp,
+             operator
             ]).
 token_modifiers([declaration,
                  definition,
-                 documentation]).
+                 readonly,
+                 static,
+                 deprecated,
+                 abstract,
+                 async,
+                 modification,
+                 documentation,
+                 defaultLibrary
+                ]).
 
 token_types_dict(Dict) :-
     token_types(Types),
@@ -121,9 +137,12 @@ colour_terms_to_tuples([Colour|Colours], Tuples-T0,
 colour_terms_to_tuples([colour(_Type, _, _)|Colours], Tuples,
                        Stream, Dict,
                        ThisOffset, ThisLine, ThisChar) :-
-    %% ( Type = goal_term(T, _)
-    %% -> debug(server, "Unhighlighted goal term ~w", [T])
-    %% ; true),
+    % ( memberchk(Type, [clause, body, list, empty_list, brace_term, parentheses,
+    %                    range, goal(_, _), head(_, _), dict, dict_content,
+    %                    term, error])
+    % -> true
+    % ; debug(server, "Unhighlighted term ~w", [Type])
+    % ),
     colour_terms_to_tuples(Colours, Tuples,
                            Stream, Dict,
                            ThisOffset, ThisLine, ThisChar).
@@ -152,16 +171,22 @@ colour_term_to_tuple(Stream, Dict,
       )
     ).
 
-% colour_type(directive,              macro,     []).
-colour_type(neck(directive),          operator,  []).
-colour_type(neck(clause),             operator,  []).
-colour_type(goal_term(built_in,       A),        macro,     []) :-
-    atom(A).
+colour_type(directive,                namespace, []).
+colour_type(head_term(_,              _),        function,  [declaration]).
+colour_type(neck(directive),          operator,  [declaration]).
+colour_type(neck(clause),             operator,  [definition]).
+colour_type(neck(grammar_rule),       operator,  [definition]).
+colour_type(goal_term(built_in,       A),        macro,     []) :- atom(A), !.
+colour_type(goal_term(built_in,       _),        function,  [defaultLibrary]).
 colour_type(goal_term(undefined,      _),        function,  []).
 colour_type(goal_term(imported(_),    _),        function,  []).
-colour_type(goal_term(('dynamic'(_)), _),      parameter, []).
-colour_type(atom,                     enum,      []).
+colour_type(goal_term(local(_),       _),        function,  []).
+colour_type(goal_term(extern(_,_),    _),        function,  []).
+colour_type(goal_term(recursion,      _),        member,    []).
+colour_type(goal_term(('dynamic'(_)), _),        parameter, []).
+colour_type(atom,                     string,    []).
 colour_type(var,                      variable,  []).
+colour_type(singleton,                variable,  [readonly]).
 colour_type(fullstop,                 operator,  []).
 colour_type(control,                  operator,  []).
 colour_type(dict_key,                 property,  []).
@@ -172,6 +197,20 @@ colour_type(comment(line),            comment,   []).
 colour_type(comment(structured),      comment,   [documentation]).
 colour_type(arity,                    parameter, []).
 colour_type(functor,                  struct,    []).
+colour_type(option_name,              struct,    []).
+colour_type(predicate_indicator,      interface, []).
+colour_type(predicate_indicator(_,    _),        interface, []).
+colour_type(unused_import,            macro,     [deprecated]).
+colour_type(undefined_import,         macro,     [deprecated]).
+colour_type(dcg,                      regexp,    []).
+colour_type(dcg(terminal),            regexp,    []).
+colour_type(dcg(plain),               function,  []).
+colour_type(dcg_right_hand_ctx,       regexp,    []).
+colour_type(grammar_rule,             regexp,    []).
+colour_type(identifier,               namespace, []).
+colour_type(file(_),                  namespace, []).
+colour_type(file_no_depend(_),        namespace, [abstract]).
+colour_type(module(_),                namespace, []).
 
 mods_mask(Mods, Mask) :-
     mods_mask(Mods, 0, Mask).
