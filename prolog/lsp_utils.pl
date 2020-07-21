@@ -242,7 +242,8 @@ clause_at_position(Stream, Ops, Clause, line_char(Line1, Char), Here) :-
     extract_clause_at_position(Stream, Ops, Terms, line_char(Line1, Char), Here,
                                SubPos, Error, Clause).
 
-extract_clause_at_position(Stream, Ops, _, line_char(Line1, Char), Here, _, Error, Clause) :-
+extract_clause_at_position(Stream, Ops, _, line_char(Line1, Char), Here, _,
+                           Error, Clause) :-
     nonvar(Error), !, Line1 > 1,
     LineBack is Line1 - 1,
     clause_at_position(Stream, Ops, Clause, line_char(LineBack, Char), Here).
