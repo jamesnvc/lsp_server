@@ -3,7 +3,6 @@
                       name_callable/2,
                       relative_ref_location/4,
                       help_at_position/4,
-                      help_excerpt/2,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
                       seek_to_line/2,
