@@ -1,5 +1,6 @@
 :- module(lsp_changes, [handle_doc_changes/2,
-                        doc_text_fallback/2]).
+                        doc_text_fallback/2,
+                        doc_text/2]).
 /** <module> LSP changes
 
 Module for tracking edits to the source, in order to be able to act on
