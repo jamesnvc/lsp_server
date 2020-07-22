@@ -8,14 +8,9 @@ The main entry point for the Language Server implementation.
 
 :- use_module(library(apply), [maplist/2]).
 :- use_module(library(debug), [debug/3, debug/1]).
-:- use_module(library(socket), [tcp_socket/1,
-                                tcp_bind/2,
-                                tcp_listen/2,
-                                tcp_open_socket/3]).
 :- use_module(library(http/json), [atom_json_dict/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
-:- use_module(library(statistics), [time/1]).
 :- use_module(library(utf8), [utf8_codes//1]).
 :- use_module(library(yall)).
 
@@ -35,7 +30,6 @@ main :-
     set_prolog_flag(toplevel_prompt, ''),
     current_prolog_flag(argv, Args),
     debug(server),
-    debug(server(hover)),
     start(Args).
 
 start([stdio]) :- !,
