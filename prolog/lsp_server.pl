@@ -122,8 +122,8 @@ server_capabilities(
       documentFormattingProvider:false,
       %% documentOnTypeFormattingProvider: false,
       renameProvider: false,
-      documentLinkProvider: false, % ???
-      colorProvider: true,
+      % documentLinkProvider: false,
+      % colorProvider: true,
       foldingRangeProvider: false,
       executeCommandProvider: _{commands: ["query", "assert"]},
       semanticTokensProvider: _{legend: _{tokenTypes: TokenTypes,
