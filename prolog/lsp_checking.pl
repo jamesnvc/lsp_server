@@ -6,8 +6,10 @@ Module for checking Prolog source files for errors and warnings.
 @author James Cash
 */
 
+:- use_module(library(apply_macros)).
 :- use_module(library(assoc), [list_to_assoc/2,
                                get_assoc/3]).
+:- use_module(library(apply), [maplist/3]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [member/2]).
 :- use_module(library(prolog_xref), [xref_clean/1, xref_source/1]).
@@ -60,7 +62,8 @@ expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
     kind_level(Kind, Level),
-    Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs],
+    Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0],
+    maplist(expand_error_message, Msgs0, Msgs),
     atomic_list_concat(Msgs, Msg),
     succ(Line0, Line1),
     ( succ(Char0, Char1) ; Char0 = 0 ),
@@ -74,6 +77,10 @@ expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
 expand_errors(Path, [_Msg|InErr], OutErrs-Tail) :-
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(_, [], _-[]).
+
+expand_error_message(Format-Args, Formatted) :-
+    !, format(string(Formatted), Format, Args).
+expand_error_message(Msg, Msg).
 
 kind_level(error, 1).
 kind_level(warning, 2).
