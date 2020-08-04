@@ -12,7 +12,7 @@ Module with predicates for colourizing Prolog code, via library(prolog_colour).
 :- use_module(library(apply), [maplist/4]).
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3]).
-:- use_module(library(lists), [numlist/3, nth0/3, memberchk/2]).
+:- use_module(library(lists), [numlist/3, nth0/3]).
 :- use_module(library(prolog_colour), [prolog_colourise_stream/3,
                                        prolog_colourise_term/4]).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
