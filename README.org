@@ -37,3 +37,20 @@ let g:LanguageClient_serverCommands = {
 \            '--', 'stdio']
 \ }
 #+end_src
+
+To use with Neovim, via [[https://github.com/neoclide/coc.nvim][CoC]], put the following in ~coc-settings.json~ (which you can access by using the command ~:CocConfig~).
+
+#+begin_src json
+{"languageserver": {
+  "prolog-lsp": {
+    "command": "swipl",
+    "args": ["-g", "use_module(library(lsp_server)).",
+             "-g", "lsp_server:main",
+             "-t", "halt",
+             "--", "stdio"
+            ],
+    "filetypes": ["prolog"]
+  }}
+}
+
+#+end_src
