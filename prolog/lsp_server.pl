@@ -144,9 +144,11 @@ server_capabilities(
 handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
     _{id: Id, params: Params} :< Msg, !,
-    atom_concat('file://', RootPath, Params.rootUri),
-    directory_source_files(RootPath, Files, [recursive(true)]),
-    maplist([F]>>assert(loaded_source(F)), Files),
+    ( Params.rootUri \== null
+    -> ( atom_concat('file://', RootPath, Params.rootUri),
+         directory_source_files(RootPath, Files, [recursive(true)]),
+         maplist([F]>>assert(loaded_source(F)), Files) )
+    ; true ),
     server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
     _{id: Id} :< Msg,
