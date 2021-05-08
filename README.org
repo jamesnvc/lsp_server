@@ -54,3 +54,12 @@ To use with Neovim, via [[https://github.com/neoclide/coc.nvim][CoC]], put the f
 }
 
 #+end_src
+
+To use with VSCode either:
+
+  - download the latest ~.vsix~ file from the [[https://github.com/jamesnvc/lsp_server/releases][releases page]]
+  - clone this repo and copy/symlink the ~vscode/~ directory to ~~/.vscode/extensions/~
+  - clone and build the ~.vsix~ file yourself by the follwing steps:
+    1. install ~vsce~ (~npm install -g vsce~)
+    2. run ~vsce publish~ from the ~vscode/~ directory
+    3. add the resulting ~.vsix~ to VSCode.
