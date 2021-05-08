@@ -1,0 +1,41 @@
+{
+  "name": "prolog-lsp",
+  "displayName": "prolog-lsp",
+  "description": "A language server for (SWI-)Prolog",
+  "author": "James Cash",
+  "license": "BSD-2-Clause",
+  "publisher": "jamesnvc",
+  "version": "2.2.7",
+  "categories": ["Other"],
+  "keywords": [
+    "prolog"
+  ],
+  "engines": {
+    "vscode": "^1.54.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamesnvc/lsp_server"
+  },
+  "activationEvents": [
+    "onLanguage:prolog"
+  ],
+  "main": "./extension",
+  "contributes": {
+    "languages": [
+      {"id": "prolog",
+       "aliases": ["Prolog",
+                   "SWI-Prolog",
+                   "swipl"],
+       "configuration": "./prolog.config.json",
+       "extensions": [".pl", ".plt", ".prolog"]
+      }
+]
+},
+  "dependencies": {
+    "vscode-languageclient": "^4.1.3"
+  },
+  "devDependencies": {
+    "vscode": "^1.1.6"
+  }
+}
