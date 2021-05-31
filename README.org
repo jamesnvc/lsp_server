@@ -9,7 +9,9 @@ It should work with any relatively-recent version of SWI-Prolog, but for best re
 
 Installable as a pack like ~?- pack_install(lsp_server).~
 
-To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
+* Emacs
+
+**  [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
 
 #+begin_src emacs-lisp
 (lsp-register-client
@@ -26,7 +28,9 @@ To use with Emacs, via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
    :server-id 'prolog-ls))
 #+end_src
 
-To use with Vim/Neovim, via [[https://github.com/autozimu/LanguageClient-neovim][LanguageClient]]:
+* Vim/Neovim
+
+**  [[https://github.com/autozimu/LanguageClient-neovim][LanguageClient]]:
 
 #+begin_src viml
 let g:LanguageClient_serverCommands = {
@@ -38,7 +42,11 @@ let g:LanguageClient_serverCommands = {
 \ }
 #+end_src
 
-To use with Neovim, via [[https://github.com/neoclide/coc.nvim][CoC]], put the following in ~coc-settings.json~ (which you can access by using the command ~:CocConfig~).
+* Neovim
+
+** [[https://github.com/neoclide/coc.nvim][CoC]]
+
+Put the following in ~coc-settings.json~ (which you can access by using the command ~:CocConfig~).
 
 #+begin_src json
 {"languageserver": {
@@ -52,10 +60,49 @@ To use with Neovim, via [[https://github.com/neoclide/coc.nvim][CoC]], put the f
     "filetypes": ["prolog"]
   }}
 }
-
 #+end_src
 
-To use with VSCode either:
+** Native LSP (for Neovim >= 0.5)
+
+Install the [[https://github.com/neovim/nvim-lspconfig][neovim/nvim-lspconfig]] package
+
+Put the following in ~$XDG_CONFIG_DIR/nvim/lua/lspconfig/prolog_lsp.lua~:
+
+#+begin_src lua
+local configs = require 'lspconfig/configs'
+local util = require 'lspconfig/util'
+
+configs.prolog_lsp = {
+  default_config = {
+    cmd = {"swipl",
+           "-g", "use_module(library(lsp_server)).",
+           "-g", "lsp_server:main",
+           "-t", "halt",
+           "--", "stdio"};
+    filetypes = {"prolog"};
+    root_dir = util.root_pattern("pack.pl");
+  };
+  docs = {
+     description = [[
+  https://github.com/jamesnvc/prolog_lsp
+
+  Prolog Language Server
+  ]];
+  }
+}
+-- vim:et ts=2 sw=2
+#+end_src
+
+Then add the following to ~init.vim~:
+
+#+begin_src viml
+lua << EOF
+require('lspconfig/prolog_lsp')
+require('lspconfig').prolog_lsp.setup{}
+EOF
+#+end_src
+
+* VSCode
 
   - download the latest ~.vsix~ file from the [[https://github.com/jamesnvc/lsp_server/releases][releases page]]
   - clone this repo and copy/symlink the ~vscode/~ directory to ~~/.vscode/extensions/~
