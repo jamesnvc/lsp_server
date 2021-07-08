@@ -204,20 +204,26 @@ clause_variable_positions(Path, Line, Variables) :-
     findall(Op, xref_op(Path, Op), Ops),
     setup_call_cleanup(
         open(Path, read, Stream, []),
-        ( read_source_term_at_location(Stream, Term,
-                                 [line(Line),
-                                  subterm_positions(SubPos),
-                                  variable_names(VarNames),
-                                  operators(Ops),
-                                  error(_Error)]),
-          findall(
+        ( read_source_term_at_location(
+              Stream, Term,
+              [line(Line),
+               subterm_positions(SubPos),
+               variable_names(VarNames),
+               operators(Ops),
+               error(Error)]),
+          ( var(Error)
+          -> bagof(
               VarName-Locations,
-              ( member(VarName=Var, VarNames),
-                findall(Offset, find_var(Term, Offset, SubPos, Var), Offsets),
-                collapse_adjacent(Offsets, ColOffsets),
-                maplist(offset_line_char(Stream), ColOffsets, Locations)
+              Offsets^ColOffsets^(
+                  member(VarName=Var, VarNames),
+                  bagof(Offset, find_var(Term, Offset, SubPos, Var), Offsets),
+                  collapse_adjacent(Offsets, ColOffsets),
+                  maplist(offset_line_char(Stream), ColOffsets, Locations)
               ),
               Variables)
+          ; ( debug(server, "Error reading term: ~w", [Error]),
+              Variables = [] )
+          )
         ),
         close(Stream)
     ).
@@ -296,17 +302,17 @@ find_containing_term(Offset, [Dict|_], [DP|_], Term, P) :-
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
 
-find_var(Term, Offset, F-T, Var) :-
-    Var == Term,
-    between(F, T, Offset).
-find_var(Term, Offset, term_position(F, T, _, _, SubPoses), Var) :-
+find_var(Term, Offset, Loc, Var), Var == Term =>
+    Loc = F-T, between(F, T, Offset).
+find_var(Term, Offset, term_position(F, T, _, _, SubPoses), Var) =>
     between(F, T, Offset),
     Term =.. [_|SubTerms],
     find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
     find_var(SubTerm, Offset, SubPos, Var).
-find_var(Term, Offset, parentheses_term_position(F, T, SubPoses), Var) :-
+find_var(Term, Offset, parentheses_term_position(F, T, SubPoses), Var) =>
     between(F, T, Offset),
     find_var(Term, Offset, SubPoses, Var).
-find_var({SubTerm}, Offset, brace_term_position(F, T, SubPos), Var) :-
+find_var({SubTerm}, Offset, brace_term_position(F, T, SubPos), Var) =>
     between(F, T, Offset),
     find_var(SubTerm, Offset, SubPos, Var).
+find_var(Term, Offset, SubPos, Var), Term \== Var => fail.
