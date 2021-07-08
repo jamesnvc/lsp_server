@@ -306,7 +306,9 @@ find_var(Term, Offset, Loc, Var), Var == Term =>
     Loc = F-T, between(F, T, Offset).
 find_var(Term, Offset, term_position(F, T, _, _, SubPoses), Var) =>
     between(F, T, Offset),
-    Term =.. [_|SubTerms],
+    % using compound_name_arguments/3 instead of =.. to handle
+    % zero-arg terms properly
+    compound_name_arguments(Term, _, SubTerms),
     find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
     find_var(SubTerm, Offset, SubPos, Var).
 find_var(Term, Offset, parentheses_term_position(F, T, SubPoses), Var) =>
