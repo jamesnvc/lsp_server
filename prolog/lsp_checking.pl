@@ -60,9 +60,19 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
     expand_errors(Path, InErrs, OutErrs-Tail1).
 expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
     expand_errors(Path, InErr, OutErrs-Tail).
+expand_errors(Path, [_Term-error-Lines-_-_|InErrs], OutErrs-[Err|Tail]) :-
+    Lines = [url(_File:Line1:Col1), _, _, Msg], !,
+    succ(Line0, Line1), succ(Col0, Col1),
+    Err = _{severity: 1,
+            source: "prolog_xref",
+            range: _{start: _{line: Line0, character: Col0},
+                     end: _{line: Line1, character: 0}},
+            message: Msg
+           },
+    expand_errors(Path, InErrs, OutErrs-Tail).
 expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
     kind_level(Kind, Level),
-    Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0],
+    Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
     maplist(expand_error_message, Msgs0, Msgs),
     atomic_list_concat(Msgs, Msg),
     succ(Line0, Line1),
