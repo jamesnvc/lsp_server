@@ -214,7 +214,7 @@ clause_variable_positions(Path, Line, Variables) :-
           ( var(Error)
           -> bagof(
               VarName-Locations,
-              Offsets^ColOffsets^(
+              Offsets^ColOffsets^Var^Offset^(
                   member(VarName=Var, VarNames),
                   bagof(Offset, find_var(Term, Offset, SubPos, Var), Offsets),
                   collapse_adjacent(Offsets, ColOffsets),
