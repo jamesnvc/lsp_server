@@ -63,7 +63,7 @@ expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [_Term-error-Lines-_-_|InErrs], OutErrs-[Err|Tail]) :-
     Lines = [url(_File:Line1:Col1), _, _, Msg], !,
-    succ(Line0, Line1), succ(Col0, Col1),
+    succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ),
     Err = _{severity: 1,
             source: "prolog_xref",
             range: _{start: _{line: Line0, character: Col0},
