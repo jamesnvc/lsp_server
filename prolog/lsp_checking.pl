@@ -59,7 +59,7 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
         Tail1
     ),
     expand_errors(Path, InErrs, OutErrs-Tail1).
-expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
+expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [_Term-error-Lines-_-_|InErrs], OutErrs-[Err|Tail]) :-
     Lines = [url(_File:Line1:Col1), _, _, Msg], !,
@@ -85,9 +85,9 @@ expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
             message: Msg
            },
     expand_errors(Path, InErr, OutErrs-Tail).
-expand_errors(Path, [_Msg|InErr], OutErrs-Tail) :-
+expand_errors(Path, [_Msg|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
-expand_errors(_, [], _-[]).
+expand_errors(_, [], _-[]) :- !.
 
 expand_error_message(Format-Args, Formatted) :-
     !, format(string(Formatted), Format, Args).
