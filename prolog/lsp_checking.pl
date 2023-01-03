@@ -54,9 +54,10 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
                      source: "prolog_xref",
                      range: _{start: _{line: Line, character: Char},
                               end: _{line: Line, character: EndChar}},
-                     message: Msg}),
+                     message: Msg} ),
         Tail0,
-        Tail1),
+        Tail1
+    ),
     expand_errors(Path, InErrs, OutErrs-Tail1).
 expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :-
     expand_errors(Path, InErr, OutErrs-Tail).
