@@ -28,6 +28,20 @@ Installable as a pack like ~?- pack_install(lsp_server).~
    :server-id 'prolog-ls))
 #+end_src
 
+** [[https://github.com/joaotavora/eglot][eglot]]
+
+#+begin_src emacs-lisp
+(setopt eglot-server-programs (cons
+                                 (cons 'prolog-mode
+                                       (list "swipl"
+                                             "-O"
+                                             "-g" "use_module(library(lsp_server))."
+                                             "-g" "lsp_server:main"
+                                             "-t" "halt"
+                                             "--" "stdio"))
+                                 eglot-server-programs))
+#+end_src
+
 * Vim/Neovim
 
 **  [[https://github.com/autozimu/LanguageClient-neovim][LanguageClient]]:
