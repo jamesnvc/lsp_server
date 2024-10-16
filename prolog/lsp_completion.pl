@@ -58,7 +58,22 @@ completions_at(File, Position, Completions) :-
           Result = _{label: Label,
                      insertText: Func,
                      insertTextFormat: 2}),
-        Completions
+        Completions,
+        CompletionsTail
+    ),
+    findall(
+        Result,
+        ( predicate_property(system:Goal, built_in),
+          functor(Goal, Name, Arity),
+          atom_concat(Prefix, _, Name),
+          \+ sub_atom(Name, 0, _, _, '$'),
+          args_str(Arity, Args),
+          format(string(Func), "~w(~w)$0", [Name, Args]),
+          format(string(Label), "~w/~w", [Name, Arity]),
+          Result = _{label: Label,
+                     insertText: Func,
+                     insertTextFormat: 2}),
+        CompletionsTail
     ).
 
 args_str(Arity, Str) :-
