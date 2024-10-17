@@ -32,9 +32,9 @@ check_errors(Path, Errors) :-
                 nb_setval(checking_errors, [Term-Kind-Lines-Line-Char|ErrList])
            ),
     setup_call_cleanup(
-        assertz(Hook),
+        assertz(Hook, Ref),
         ( xref_clean(Path), xref_source(Path) ),
-        retractall(user:message_hook(_, _, _))
+        erase(Ref)
     ),
     nb_getval(checking_errors, ErrList),
     expand_errors(Path, ErrList, Errors-Errors).
