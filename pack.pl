@@ -1,6 +1,6 @@
 name(lsp_server).
 title('A Prolog LSP Server').
-version('2.4.1').
+version('2.4.2').
 author('James N. V. Cash', 'james.cash@occasionallycogent.com').
 home('https://github.com/jamesnvc/lsp_server').
 download('https://github.com/jamesnvc/lsp_server/releases/*.zip').
