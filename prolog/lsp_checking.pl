@@ -37,7 +37,7 @@ check_errors(Path, Errors) :-
         erase(Ref)
     ),
     nb_getval(checking_errors, ErrList),
-    expand_errors(Path, ErrList, Errors-Errors).
+    once(expand_errors(Path, ErrList, Errors-Errors)).
 
 expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs],
               OutErrs-Tail0) :- !,
@@ -62,7 +62,10 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
 expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [_Term-error-Lines-_-_|InErrs], OutErrs-[Err|Tail]) :-
-    Lines = [url(_File:Line1:Col1), _, _, Msg], !,
+    Lines = [url(_File:Line1:Col1), _, _, Msg0], !,
+    ( Msg0 = Fmt-Params
+    -> format(string(Msg), Fmt, Params)
+    ;  Msg = Msg0 ),
     succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ),
     Err = _{severity: 1,
             source: "prolog_xref",
