@@ -9,6 +9,8 @@ It should work with any relatively-recent version of SWI-Prolog, but for best re
 
 Installable as a pack like ~?- pack_install(lsp_server).~
 
+As of version 2.5.0, running the server over a socket is now supported by passing in the commandline arguments ~port <port number>~ (instead of ~stdio~).
+
 * Emacs
 
 **  [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
