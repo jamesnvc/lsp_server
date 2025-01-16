@@ -56,10 +56,7 @@ stdio_server :-
     stream_pair(StreamPair, In, Out),
     handle_requests_stream(StreamPair).
 
-% [TODO] add multithreading? Guess that will also need a message queue
-% to write to stdout
 % socket server
-
 socket_server(Port) :-
     tcp_socket(Socket),
     tcp_bind(Socket, Port),
@@ -105,6 +102,8 @@ client_handler(Extra-ExtraTail, In, Out) :-
         client_handler(Remainder-Tail, In, Out) )
     ).
 
+% [TODO] add multithreading? Guess that will also need a message queue
+% to write to stdout
 handle_requests(Out, In, Tail) :-
     handle_request(Out, In, Rest), !,
     ( var(Rest)
