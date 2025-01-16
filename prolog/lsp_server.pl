@@ -12,6 +12,11 @@ The main entry point for the Language Server implementation.
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
 :- use_module(library(utf8), [utf8_codes//1]).
+:- use_module(library(socket), [tcp_socket/1,
+                                tcp_bind/2,
+                                tcp_accept/3,
+                                tcp_listen/2,
+                                tcp_open_socket/2]).
 :- use_module(library(yall)).
 
 :- use_module(lsp_utils).
@@ -35,6 +40,10 @@ main :-
 start([stdio]) :- !,
     debug(server, "Starting stdio client", []),
     stdio_server.
+start([port, Port]) :- !,
+    debug(server, "Starting socket client on port ~w", [Port]),
+    atom_number(Port, PortN),
+    socket_server(PortN).
 start(Args) :-
     debug(server, "Unknown args ~w", [Args]).
 
@@ -43,6 +52,38 @@ start(Args) :-
 
 stdio_server :-
     current_input(In),
+    current_output(Out),
+    stream_pair(StreamPair, In, Out),
+    handle_requests_stream(StreamPair).
+
+% [TODO] add multithreading? Guess that will also need a message queue
+% to write to stdout
+% socket server
+
+socket_server(Port) :-
+    tcp_socket(Socket),
+    tcp_bind(Socket, Port),
+    tcp_listen(Socket, 5),
+    tcp_open_socket(Socket, StreamPair),
+    stream_pair(StreamPair, AcceptFd, _),
+    dispatch_socket_client(AcceptFd).
+
+dispatch_socket_client(AcceptFd) :-
+    tcp_accept(AcceptFd, Socket, Peer),
+    thread_create(process_client(Socket, Peer), _, [detached(true)]),
+    dispatch_socket_client(AcceptFd).
+
+process_client(Socket, Peer) :-
+    setup_call_cleanup(
+        tcp_open_socket(Socket, StreamPair),
+        ( debug(server, "Connecting new client ~w", [Peer]),
+          handle_requests_stream(StreamPair) ),
+        close(StreamPair)).
+
+% common stream handler
+
+handle_requests_stream(StreamPair) :-
+    stream_pair(StreamPair, In, Out),
     set_stream(In, buffer(full)),
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
@@ -50,21 +91,18 @@ stdio_server :-
     % handling UTF decoding in JSON parsing, but doing the auto-translation
     % causes Content-Length to be incorrect
     set_stream(In, encoding(octet)),
-    current_output(Out),
     set_stream(Out, encoding(utf8)),
-    stdio_handler(A-A, In).
-% [TODO] add multithreading? Guess that will also need a message queue
-% to write to stdout
-stdio_handler(Extra-ExtraTail, In) :-
+    client_handler(A-A, In, Out).
+
+client_handler(Extra-ExtraTail, In, Out) :-
     wait_for_input([In], _, infinite),
     fill_buffer(In),
     read_pending_codes(In, ReadCodes, Tail),
     ( Tail == []
     -> true
-    ; ( current_output(Out),
-        ExtraTail = ReadCodes,
+    ; ( ExtraTail = ReadCodes,
         handle_requests(Out, Extra, Remainder),
-        stdio_handler(Remainder-Tail, In) )
+        client_handler(Remainder-Tail, In, Out) )
     ).
 
 handle_requests(Out, In, Tail) :-
