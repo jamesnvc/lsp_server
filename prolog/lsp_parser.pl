@@ -21,15 +21,13 @@ headers([Header|Headers]) -->
     header(Header), "\r\n",
     headers(Headers).
 
-json_chars(0, []) --> [].
-json_chars(N, [C|Cs]) --> [C], { succ(Nn, N) }, json_chars(Nn, Cs).
-
 lsp_request(_{headers: Headers, body: Body}) -->
     headers(HeadersList),
     { list_to_assoc(HeadersList, Headers),
       get_assoc("Content-Length", Headers, LengthS),
-      number_string(Length, LengthS) },
-    json_chars(Length, JsonCodes),
+      number_string(Length, LengthS),
+      length(JsonCodes, Length) },
+    JsonCodes,
     { ground(JsonCodes),
       open_codes_stream(JsonCodes, JsonStream),
       json_read_dict(JsonStream, Body, []) }.
