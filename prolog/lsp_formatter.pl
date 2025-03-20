@@ -54,11 +54,41 @@ read_term_positions(Path, TermsWithPositions) :-
 reified_format_for_file(Path, Reified) :-
     read_term_positions(Path, TermsWithPos),
     expand_term_positions(TermsWithPos, Reified0),
+    sort(1, @=<, Reified0, Reified1),
     file_lines_start_end(Path, LinesStartEnd),
     InitState = _{last_line: 1, last_char: 0, line_bounds: LinesStartEnd},
-    add_whitespace_terms(InitState, Reified0, Reified).
+    add_whitespace_terms(InitState, Reified1, Reified).
 
-add_whitespace_terms(_State, [], []) :- !.
+emit_reified(_, []) :- !.
+emit_reified(To, [Term|Rest]) :-
+    emit_reified_(To, Term),
+    emit_reified(To, Rest).
+
+emit_reified_(To, newline) => format(To, "~n", []).
+emit_reified_(To, white(N)) =>
+    length(Whites, N),
+    maplist(=(0' ), Whites),
+    format(To, "~s", [Whites]).
+emit_reified_(To, simple(_, _, T)) =>
+    format(To, "~w", [T]).
+emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
+    format(To, "~w", [Func]),
+    ( Parens = true
+    -> format(To, "(", [])
+    ; true).
+emit_reified_(To, term_end(_, _, Parens)) =>
+    % how do we know where to put the '.'
+   ( Parens = true
+    -> format(To, ")", [])
+    ; true).
+emit_reified_(To, list_begin(_, _)) =>
+    format(To, "[", []).
+emit_reified_(To, list_end(_, _)) =>
+    format(To, "]", []).
+emit_reified_(To, comment(_, _, Text)) =>
+    format(To, "~s", [Text]).
+
+add_whitespace_terms(_State, [], [newline]) :- !.
 add_whitespace_terms(State, [Term|Terms], Out) :-
     arg(1, Term, TermStart),
     stream_position_at_offset(State.line_bounds, TermStart, Pos),
@@ -78,6 +108,7 @@ expand_term_positions([InfoDict|Rest], Expanded0) :-
     ;  Expanded1 = Expanded0 ),
 
     Term = InfoDict.term,
+    % TODO: will also need InfoDict.variable_names
     expand_subterm_positions(Term, InfoDict.subterm, Expanded1, Expanded2),
     expand_term_positions(Rest, Expanded2).
 
@@ -98,13 +129,13 @@ expand_subterm_positions(Term, term_position(From, To, FFrom, FTo, SubPoses), Ex
     functor(Term, Func, Arity, TermType),
     % way to tell if term is parenthesized?
     ( From \= FFrom
-    -> debug(lsp(format), "From(~q) \\= FFrom(~q); Term ~q ", [From, FFrom, Term])
-    ; true ),
-    Expanded = [term_begin(FFrom, FTo, Func, TermType)|ExpandedTail0],
+    -> Parens = false
+    ; Parens = true ),
+    Expanded = [term_begin(FFrom, FTo, Func, TermType, Parens)|ExpandedTail0],
     expand_term_subterms_positions(Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
     succ(To0, To),
-    ExpandedTail1 = [term_end(To0, To)|ExTail].
+    ExpandedTail1 = [term_end(To0, To, Parens)|ExTail].
 expand_subterm_positions(Term, From-To, Expanded, Tail) =>
     Expanded = [simple(From, To, Term)|Tail].
 expand_subterm_positions(Term, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
