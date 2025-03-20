@@ -105,6 +105,10 @@ emit_reified_(To, list_end(_, _)) =>
     format(To, "]", []).
 emit_reified_(To, comment(_, _, Text)) =>
     format(To, "~s", [Text]).
+emit_reified_(To, braces_begin(_, _)) =>
+    format(To, "{", []).
+emit_reified_(To, braces_end(_, _)) =>
+    format(To, "}", []).
 
 add_whitespace_terms(_State, [], [newline]) :- !.
 add_whitespace_terms(State, [Term|Terms], Out) :-
@@ -179,6 +183,14 @@ expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail)
     % need to expand HasTail too?
     ;  Expanded2 = [list_tail(HasTail), list_end|Tail0]),
     maybe_add_comma(TermState, To, Tail0, Tail).
+expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPos), Expanded, Tail) =>
+    BraceTo is From + 1,
+    Expanded = [braces_begin(From, BraceTo)|Tail0],
+    Term = {Term0},
+    expand_subterm_positions(Term0, false, BracesPos, Tail0, Tail1),
+    succ(To1, To),
+    Tail1 = [braces_end(To1, To)|Tail2],
+    maybe_add_comma(TermState, To1, Tail2, Tail).
 
 maybe_add_comma(subterm_item, CommaFrom, Tail0, Tail) :- !,
     CommaTo is CommaFrom + 1,
