@@ -43,7 +43,11 @@ register_new_pack(NewVersion) :-
            [NewVersion]),
     pack_install(lsp_server, [url(Url), interactive(false)]).
 
-main([ReleaseType]) :-
+main(Args) :-
+    ( Args = [ReleaseType], increment_version(ReleaseType, [0, 0, 0], _)
+    -> true
+    ;  ( format(user_error, "Usage: make_release.pl [major|minor|patch]~n", []),
+         halt(1) )),
     update_pack_version(ReleaseType, NewVersion),
     format("Bumping to ~w~n", [NewVersion]),
     git_commit_and_tag(NewVersion),
