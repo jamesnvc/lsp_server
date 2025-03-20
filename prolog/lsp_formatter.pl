@@ -7,6 +7,8 @@ Module for formatting Prolog source code
 
 */
 
+:- use_module(library(apply)).
+:- use_module(library(apply)).
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
@@ -43,7 +45,8 @@ read_term_positions(Path, TermsWithPositions) :-
                                                       variable_names(VarNames),
                                                       comments(Comments)]),
           ( Term \= end_of_file
-          -> arg(1, Acc, Lst),
+          -> maplist([Name=Var]>>( Var = var(Name) ), VarNames),
+             arg(1, Acc, Lst),
              nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
                                   varible_names: VarNames, comments: Comments}|Lst]),
              fail
@@ -76,9 +79,15 @@ emit_reified_(To, white(N)) =>
     format(To, "~s", [Whites]).
 emit_reified_(To, comma(_, _)) => format(To, ",", []).
 emit_reified_(To, simple(_, _, T)) =>
-    format(To, "~w", [T]).
+    ( T = var(V)
+    -> format(To, "~w", [V])
+    ;  format(To, "~q", [T])).
+emit_reified_(To, string(_, _, T)) =>
+    format(To, "~q", [T]).
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
-    format(To, "~w", [Func]),
+    ( is_operator(Func)
+    -> format(To, "~w", [Func])
+    ; format(To, "~q", [Func]) ),
     ( Parens = true
     -> format(To, "(", [])
     ; true).
@@ -154,6 +163,9 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
     succ(To0, To),
     ExpandedTail1 = [term_end(To0, To, Parens, TermState)|ExpandedTail2],
     maybe_add_comma(TermState, To, ExpandedTail2, ExTail).
+expand_subterm_positions(Term, TermState, string_position(From, To), Expanded, Tail) =>
+    Expanded = [string(From, To, Term)|Tail0],
+    maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
     Expanded = [simple(From, To, Term)|Tail0],
     maybe_add_comma(TermState, To, Tail0, Tail).
