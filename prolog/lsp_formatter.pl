@@ -10,6 +10,8 @@ Module for formatting Prolog source code
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
+:- thread_local current_source/1.
+
 file_lines_start_end(Path, LineCharRange) :-
     Acc = line_data([], line(1, 0)),
     setup_call_cleanup(
@@ -52,12 +54,15 @@ read_term_positions(Path, TermsWithPositions) :-
     reverse(TermsWithPositionsRev, TermsWithPositions).
 
 reified_format_for_file(Path, Reified) :-
+    xref_source(Path),
+    assertz(current_source(Path)),
     read_term_positions(Path, TermsWithPos),
     expand_term_positions(TermsWithPos, Reified0),
     sort(1, @=<, Reified0, Reified1),
     file_lines_start_end(Path, LinesStartEnd),
     InitState = _{last_line: 1, last_char: 0, line_bounds: LinesStartEnd},
-    add_whitespace_terms(InitState, Reified1, Reified).
+    add_whitespace_terms(InitState, Reified1, Reified),
+    retractall(current_source(Path)).
 
 emit_reified(_, []) :- !.
 emit_reified(To, [Term|Rest]) :-
@@ -69,6 +74,7 @@ emit_reified_(To, white(N)) =>
     length(Whites, N),
     maplist(=(0' ), Whites),
     format(To, "~s", [Whites]).
+emit_reified_(To, comma(_, _)) => format(To, ",", []).
 emit_reified_(To, simple(_, _, T)) =>
     format(To, "~w", [T]).
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
@@ -76,11 +82,14 @@ emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
     ( Parens = true
     -> format(To, "(", [])
     ; true).
-emit_reified_(To, term_end(_, _, Parens)) =>
-    % how do we know where to put the '.'
-   ( Parens = true
+emit_reified_(To, term_end(_, _, Parens, TermState)) =>
+    % how do we know where to put the '.'?
+    ( Parens = true
     -> format(To, ")", [])
-    ; true).
+    ; true),
+    ( TermState = toplevel
+    -> format(To, ".", [])
+    ; true ).
 emit_reified_(To, list_begin(_, _)) =>
     format(To, "[", []).
 emit_reified_(To, list_end(_, _)) =>
@@ -109,7 +118,7 @@ expand_term_positions([InfoDict|Rest], Expanded0) :-
 
     Term = InfoDict.term,
     % TODO: will also need InfoDict.variable_names
-    expand_subterm_positions(Term, InfoDict.subterm, Expanded1, Expanded2),
+    expand_subterm_positions(Term, toplevel, InfoDict.subterm, Expanded1, Expanded2),
     expand_term_positions(Rest, Expanded2).
 
 expand_comments_positions([], Tail, Tail) :- !.
@@ -124,29 +133,47 @@ expand_comment_positions(CommentPos-Comment, Expanded, ExpandedTail) :-
     stream_position_data(char_count, CommentEndPos, To),
     Expanded = [comment(From, To, Comment)|ExpandedTail].
 
-expand_subterm_positions(Term, term_position(From, To, FFrom, FTo, SubPoses), Expanded, ExTail) =>
+is_operator(Func) :-
+    current_op(_, _, Func), !.
+is_operator(Func) :-
+    current_source(Path),
+    xref_op(Path, op(_, _, Func)).
+
+expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
+                         Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
     % way to tell if term is parenthesized?
-    ( From \= FFrom
-    -> Parens = false
-    ; Parens = true ),
-    Expanded = [term_begin(FFrom, FTo, Func, TermType, Parens)|ExpandedTail0],
+    ( ( From \= FFrom ; is_operator(Func) )
+    -> ( Parens = false, FTo1 = FTo )
+    %   add space for the parenthesis
+    ;  ( Parens = true, FTo1 is FTo + 1 ) ),
+    Expanded = [term_begin(FFrom, FTo1, Func, TermType, Parens)|ExpandedTail0],
     expand_term_subterms_positions(Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
     succ(To0, To),
-    ExpandedTail1 = [term_end(To0, To, Parens)|ExTail].
-expand_subterm_positions(Term, From-To, Expanded, Tail) =>
-    Expanded = [simple(From, To, Term)|Tail].
-expand_subterm_positions(Term, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
+    ExpandedTail1 = [term_end(To0, To, Parens, TermState)|ExpandedTail2],
+    (  Parens = true
+    -> maybe_add_comma(TermState, To, ExpandedTail2, ExTail)
+    ;  ExTail = ExpandedTail2 ).
+expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
+    Expanded = [simple(From, To, Term)|Tail0],
+    maybe_add_comma(TermState, To, Tail0, Tail).
+expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
     assertion(is_listish(Term)),
     Expanded = [list_begin(From, To)|Expanded1],
     expand_list_subterms_positions(Term, Elms, Expanded1, Expanded2),
     succ(To0, To),
     (  HasTail = none
-    -> Expanded2 = [list_end(To0, To)|Tail]
+    -> Expanded2 = [list_end(To0, To)|Tail0]
     % need to expand HasTail too?
-    ;  Expanded2 = [list_tail(HasTail), list_end|Tail]).
+    ;  Expanded2 = [list_tail(HasTail), list_end|Tail0]),
+    maybe_add_comma(TermState, To, Tail0, Tail).
+
+maybe_add_comma(subterm_item, CommaFrom, Tail0, Tail) :- !,
+    CommaTo is CommaFrom + 1,
+    Tail0 = [comma(CommaFrom, CommaTo)|Tail].
+maybe_add_comma(_, _, Tail, Tail).
 
 is_listish(L) :- \+ var(L), !.
 is_listish([]).
@@ -154,14 +181,18 @@ is_listish([_|_]).
 
 expand_list_subterms_positions([], [], Tail, Tail) :- !.
 expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
-    expand_subterm_positions(Term, Pos, Expanded, Expanded1),
+    expand_subterm_positions(Term, false, Pos, Expanded, Expanded1),
     expand_list_subterms_positions(Terms, Poses, Expanded1, Tail).
 
 expand_term_subterms_positions(_Term, _Arity, _Arg, [], Tail, Tail) :- !.
 expand_term_subterms_positions(Term, Arity, Arg, [SubPos|Poses], Expanded, ExpandedTail) :-
     assertion(between(1, Arity, Arg)),
     arg(Arg, Term, SubTerm),
-    expand_subterm_positions(SubTerm, SubPos, Expanded, Expanded0),
+    functor(Term, Func, _, _),
+    ( \+ is_operator(Func), Arg < Arity
+    -> State = subterm_item
+    ;  State = false ),
+    expand_subterm_positions(SubTerm, State, SubPos, Expanded, Expanded0),
     succ(Arg, Arg1),
     expand_term_subterms_positions(Term, Arity, Arg1, Poses, Expanded0, ExpandedTail).
 
