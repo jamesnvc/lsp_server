@@ -153,9 +153,7 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
                                    ExpandedTail0, ExpandedTail1),
     succ(To0, To),
     ExpandedTail1 = [term_end(To0, To, Parens, TermState)|ExpandedTail2],
-    (  Parens = true
-    -> maybe_add_comma(TermState, To, ExpandedTail2, ExTail)
-    ;  ExTail = ExpandedTail2 ).
+    maybe_add_comma(TermState, To, ExpandedTail2, ExTail).
 expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
     Expanded = [simple(From, To, Term)|Tail0],
     maybe_add_comma(TermState, To, Tail0, Tail).
@@ -181,7 +179,10 @@ is_listish([_|_]).
 
 expand_list_subterms_positions([], [], Tail, Tail) :- !.
 expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
-    expand_subterm_positions(Term, false, Pos, Expanded, Expanded1),
+    ( Terms = [_|_]
+    -> TermState = subterm_item
+    ;  TermState = false),
+    expand_subterm_positions(Term, TermState, Pos, Expanded, Expanded1),
     expand_list_subterms_positions(Terms, Poses, Expanded1, Tail).
 
 expand_term_subterms_positions(_Term, _Arity, _Arg, [], Tail, Tail) :- !.
