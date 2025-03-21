@@ -78,10 +78,13 @@ emit_reified_(To, white(N)) =>
     maplist(=(0' ), Whites),
     format(To, "~s", [Whites]).
 emit_reified_(To, comma(_, _)) => format(To, ",", []).
+emit_reified_(To, simple(_, _, var(T))) =>
+    format(To, "~w", [T]).
+emit_reified_(To, simple(_, _, T)), var(T) =>
+    % If T is still a var, it must be anonymous
+    format(To, "_", []).
 emit_reified_(To, simple(_, _, T)) =>
-    ( T = var(V)
-    -> format(To, "~w", [V])
-    ;  format(To, "~q", [T])).
+    format(To, "~q", [T]).
 emit_reified_(To, string(_, _, T)) =>
     format(To, "~q", [T]).
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
@@ -108,6 +111,24 @@ emit_reified_(To, comment(_, _, Text)) =>
 emit_reified_(To, braces_begin(_, _)) =>
     format(To, "{", []).
 emit_reified_(To, braces_end(_, _)) =>
+    format(To, "}", []).
+emit_reified_(To, parens_begin(_, _)) =>
+    format(To, "(", []).
+emit_reified_(To, parens_end(_, _)) =>
+    format(To, ")", []).
+emit_reified_(To, dict_tag(_, _, var(Tag))) =>
+    format(To, "~w", [Tag]).
+emit_reified_(To, dict_tag(_, _, Tag)), var(Tag) =>
+    % if Tag is still a var, it must be anonymous
+    format(To, "_", []).
+emit_reified_(To, dict_tag(_, _, Tag)) =>
+    % if Tag is still a var, it must be anonymous
+    format(To, "~w", [Tag]).
+emit_reified_(To, dict_begin(_, _)) =>
+    format(To, "{", []).
+emit_reified_(To, dict_sep(_, _)) =>
+    format(To, ":", []).
+emit_reified_(To, dict_end(_, _)) =>
     format(To, "}", []).
 
 add_whitespace_terms(_State, [], [newline]) :- !.
@@ -191,6 +212,22 @@ expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPo
     succ(To1, To),
     Tail1 = [braces_end(To1, To)|Tail2],
     maybe_add_comma(TermState, To1, Tail2, Tail).
+expand_subterm_positions(Term, TermState, parentheses_term_position(From, To, ContentPos),
+                         Expanded, Tail) =>
+    ParenTo is From + 1,
+    Expanded = [parens_begin(From, ParenTo)|Tail0],
+    expand_subterm_positions(Term, false, ContentPos, Tail0, Tail1),
+    succ(To1, To),
+    Tail1 = [parens_end(To1, To)|Tail2],
+    maybe_add_comma(TermState, To, Tail2, Tail).
+expand_subterm_positions(Term, TermState, dict_position(_From, To, TagFrom, TagTo, KeyValPos),
+                        Expanded, Tail) =>
+    is_dict(Term, Tag),
+    Expanded = [dict_tag(TagFrom, TagTo, Tag), dict_begin(TagTo, To)|Tail0],
+    expand_dict_kvs_positions(Term, KeyValPos, Tail0, Tail1),
+    succ(To1, To),
+    Tail1 = [dict_end(To1, To)|Tail2],
+    maybe_add_comma(TermState, To, Tail2, Tail).
 
 maybe_add_comma(subterm_item, CommaFrom, Tail0, Tail) :- !,
     CommaTo is CommaFrom + 1,
@@ -200,6 +237,19 @@ maybe_add_comma(_, _, Tail, Tail).
 is_listish(L) :- \+ var(L), !.
 is_listish([]).
 is_listish([_|_]).
+
+expand_dict_kvs_positions(_, [], Tail, Tail) :- !.
+expand_dict_kvs_positions(Dict, [Pos|Poses], Expanded0, Tail) :-
+    Pos = key_value_position(_From, To, SepFrom, SepTo, Key, KeyPos, ValuePos),
+    get_dict(Key, Dict, Value),
+    expand_subterm_positions(Key, false, KeyPos, Expanded0, Expanded1),
+    Expanded1 = [dict_sep(SepFrom, SepTo)|Expanded2],
+    expand_subterm_positions(Value, false, ValuePos, Expanded2, Expanded3),
+    CommaTo is To + 1,
+    ( Poses = [_|_]
+    -> Expanded3 = [comma(To, CommaTo)|Expanded4]
+    ;  Expanded3 = Expanded4 ),
+    expand_dict_kvs_positions(Dict, Poses, Expanded4, Tail).
 
 expand_list_subterms_positions([], [], Tail, Tail) :- !.
 expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
