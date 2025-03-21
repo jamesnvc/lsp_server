@@ -5,6 +5,9 @@ Module for formatting Prolog source code
 
 @author James Cash
 
+@tbd Files using quasi-quotations currently aren't supported; need to
+     teach prolog_read_source_term/4 to load correctly
+
 */
 
 :- use_module(library(apply)).
@@ -43,7 +46,8 @@ read_term_positions(Path, TermsWithPositions) :-
           prolog_read_source_term(Stream, Term, _Ex, [term_position(TermPos),
                                                       subterm_positions(SubTermPos),
                                                       variable_names(VarNames),
-                                                      comments(Comments)]),
+                                                      comments(Comments),
+                                                      syntax_errors(error)]),
           ( Term \= end_of_file
           -> maplist([Name=Var]>>( Var = var(Name) ), VarNames),
              arg(1, Acc, Lst),
