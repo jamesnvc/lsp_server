@@ -14,8 +14,12 @@ file_formatted(Path, Formatted) :-
     reified_format_for_file(Path, Reified),
     apply_format_rules(Reified, Formatted).
 
+% Formatting rules helpers
+
 apply_format_rules(Content, Formatted) :-
     phrase(formatter_rules, Content, Formatted).
+
+% Formatting rules
 
 formatter_rules -->
     comments_exactly_one_space.
