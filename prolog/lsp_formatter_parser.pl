@@ -231,7 +231,7 @@ is_operator(Func) :-
     current_source(Path),
     xref_op(Path, op(_, _, Func)).
 
-expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
+expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
                          Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
     Expanded = [comma(FFrom, FTo)|ExpandedTail0],
