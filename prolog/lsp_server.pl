@@ -28,6 +28,7 @@ The main entry point for the Language Server implementation.
                             file_range_colours/4,
                             token_types/1,
                             token_modifiers/1]).
+:- use_module(lsp_formatter, [file_format_edits/2]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -156,7 +157,7 @@ server_capabilities(
       workspaceSymbolProvider: true,
       codeActionProvider: false,
       %% codeLensProvider: false,
-      documentFormattingProvider:false,
+      documentFormattingProvider: true,
       %% documentOnTypeFormattingProvider: false,
       renameProvider: false,
       % documentLinkProvider: false,
@@ -249,6 +250,11 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     atom_concat('file://', Path, Uri),
     succ(Line0, Line1),
     completions_at(Path, line_char(Line1, Char0), Completions).
+handle_msg("textDocument/formatting", Msg, _{id: Id, result: Edits}) :-
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Uri}} :< Params,
+    atom_concat('file://', Path, Uri),
+    file_format_edits(Path, Edits).
 handle_msg("textDocument/semanticTokens", Msg, Response) :-
     handle_msg("textDocument/semanticTokens/full", Msg, Response).
 handle_msg("textDocument/semanticTokens/full", Msg,
