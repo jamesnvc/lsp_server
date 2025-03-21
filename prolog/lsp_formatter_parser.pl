@@ -137,8 +137,11 @@ emit_reified_(To, simple(T)), var(T) =>
     format(To, "_", []).
 emit_reified_(To, simple(T)) =>
     format(To, "~q", [T]).
-emit_reified_(To, string(T)) =>
+emit_reified_(To, string(T)), string(T) =>
     format(To, "~q", [T]).
+emit_reified_(To, string(T)) =>
+    % string term, but not a string, must be codes
+    format(To, "`~s`", [T]).
 emit_reified_(To, term_begin(Func, _, Parens)) =>
     ( is_operator(Func)
     -> format(To, "~w", [Func])
