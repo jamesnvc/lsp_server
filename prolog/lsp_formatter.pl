@@ -108,6 +108,8 @@ emit_reified_(To, term_end(_, _, Parens, TermState)) =>
     ; true ).
 emit_reified_(To, list_begin(_, _)) =>
     format(To, "[", []).
+emit_reified_(To, list_tail(_, _)) =>
+    format(To, "|", []).
 emit_reified_(To, list_end(_, _)) =>
     format(To, "]", []).
 emit_reified_(To, comment(_, _, Text)) =>
@@ -202,8 +204,12 @@ expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail)
     succ(To0, To),
     (  HasTail = none
     -> Expanded2 = [list_end(To0, To)|Tail0]
-    % need to expand HasTail too?
-    ;  Expanded2 = [list_tail(HasTail), list_end|Tail0]),
+    ;  ( arg(1, HasTail, TailFrom),
+         succ(TailBarFrom, TailFrom),
+         Expanded2 = [list_tail(TailBarFrom, TailFrom)|Expanded3],
+         list_tail(Term, Elms, ListTail),
+         expand_subterm_positions(ListTail, false, HasTail, Expanded3, Expanded4),
+         Expanded4 = [list_end(To0, To)|Tail0] ) ),
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPos), Expanded, Tail) =>
     BraceTo is From + 1,
@@ -239,6 +245,10 @@ is_listish(L) :- \+ var(L), !.
 is_listish([]).
 is_listish([_|_]).
 
+list_tail(Tail, [], Tail) :- !.
+list_tail([_|Rest], [_|PosRest], Tail) :-
+    list_tail(Rest, PosRest, Tail).
+
 expand_dict_kvs_positions(_, [], Tail, Tail) :- !.
 expand_dict_kvs_positions(Dict, [Pos|Poses], Expanded0, Tail) :-
     Pos = key_value_position(_From, To, SepFrom, SepTo, Key, KeyPos, ValuePos),
@@ -252,9 +262,10 @@ expand_dict_kvs_positions(Dict, [Pos|Poses], Expanded0, Tail) :-
     ;  Expanded3 = Expanded4 ),
     expand_dict_kvs_positions(Dict, Poses, Expanded4, Tail).
 
-expand_list_subterms_positions([], [], Tail, Tail) :- !.
+% possible for the list to still have a tail when out of positions
+expand_list_subterms_positions(_, [], Tail, Tail) :- !.
 expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
-    ( Terms = [_|_]
+    ( Poses = [_|_]
     -> TermState = subterm_item
     ;  TermState = false),
     expand_subterm_positions(Term, TermState, Pos, Expanded, Expanded1),
