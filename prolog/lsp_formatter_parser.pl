@@ -1,8 +1,8 @@
-:- module(lsp_formatter, [ reified_format_for_file/2,
-                           emit_reified/2 ]).
-/** <module> LSP Formatter
+:- module(lsp_formatter_parser, [ reified_format_for_file/2,
+                                  emit_reified/2 ]).
+/** <module> LSP Parser For Formatter
 
-Module for formatting Prolog source code
+Module for parsing Prolog source code, for subsequent formatting
 
 @author James Cash
 
@@ -94,11 +94,26 @@ reified_format_for_file(Path, Reified) :-
     assertz(current_source(Path)),
     read_term_positions(Path, TermsWithPos),
     expand_term_positions(TermsWithPos, Reified0),
+    retractall(current_source(Path)),
     sort(1, @=<, Reified0, Reified1),
     file_lines_start_end(Path, LinesStartEnd),
     InitState = _{last_line: 1, last_char: 0, line_bounds: LinesStartEnd},
-    add_whitespace_terms(InitState, Reified1, Reified),
-    retractall(current_source(Path)).
+    add_whitespace_terms(InitState, Reified1, Reified2),
+    simplify_reified_terms(Reified2, Reified).
+
+% Remove no-longer needed positioning information to make things less
+% annoying for later steps.
+simplify_reified_terms(In, Out) :-
+    maplist(simplify_reified_term, In, Out).
+
+simplify_reified_term(newline, newline) :- !.
+simplify_reified_term(white(N), white(N)) :- !.
+simplify_reified_term(Term, SimpleTerm) :-
+    % all other terms have two extra args, From & To
+    compound_name_arguments(Term, Name, [_, _|Args]),
+    ( Args = []
+    -> SimpleTerm = Name
+    ;  compound_name_arguments(SimpleTerm, Name, Args) ).
 
 %! emit_reified(+To, +Reified) is det.
 %
@@ -114,24 +129,24 @@ emit_reified_(To, white(N)) =>
     length(Whites, N),
     maplist(=(0' ), Whites),
     format(To, "~s", [Whites]).
-emit_reified_(To, comma(_, _)) => format(To, ",", []).
-emit_reified_(To, simple(_, _, var(T))) =>
+emit_reified_(To, comma) => format(To, ",", []).
+emit_reified_(To, simple(var(T))) =>
     format(To, "~w", [T]).
-emit_reified_(To, simple(_, _, T)), var(T) =>
+emit_reified_(To, simple(T)), var(T) =>
     % If T is still a var, it must be anonymous
     format(To, "_", []).
-emit_reified_(To, simple(_, _, T)) =>
+emit_reified_(To, simple(T)) =>
     format(To, "~q", [T]).
-emit_reified_(To, string(_, _, T)) =>
+emit_reified_(To, string(T)) =>
     format(To, "~q", [T]).
-emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
+emit_reified_(To, term_begin(Func, _, Parens)) =>
     ( is_operator(Func)
     -> format(To, "~w", [Func])
     ; format(To, "~q", [Func]) ),
     ( Parens = true
     -> format(To, "(", [])
     ; true).
-emit_reified_(To, term_end(_, _, Parens, TermState)) =>
+emit_reified_(To, term_end(Parens, TermState)) =>
     % how do we know where to put the '.'?
     ( Parens = true
     -> format(To, ")", [])
@@ -139,35 +154,35 @@ emit_reified_(To, term_end(_, _, Parens, TermState)) =>
     ( TermState = toplevel
     -> format(To, ".", [])
     ; true ).
-emit_reified_(To, list_begin(_, _)) =>
+emit_reified_(To, list_begin) =>
     format(To, "[", []).
-emit_reified_(To, list_tail(_, _)) =>
+emit_reified_(To, list_tail) =>
     format(To, "|", []).
-emit_reified_(To, list_end(_, _)) =>
+emit_reified_(To, list_end) =>
     format(To, "]", []).
-emit_reified_(To, comment(_, _, Text)) =>
+emit_reified_(To, comment(Text)) =>
     format(To, "~s", [Text]).
-emit_reified_(To, braces_begin(_, _)) =>
+emit_reified_(To, braces_begin) =>
     format(To, "{", []).
-emit_reified_(To, braces_end(_, _)) =>
+emit_reified_(To, braces_end) =>
     format(To, "}", []).
-emit_reified_(To, parens_begin(_, _)) =>
+emit_reified_(To, parens_begin) =>
     format(To, "(", []).
-emit_reified_(To, parens_end(_, _)) =>
+emit_reified_(To, parens_end) =>
     format(To, ")", []).
-emit_reified_(To, dict_tag(_, _, var(Tag))) =>
+emit_reified_(To, dict_tag(var(Tag))) =>
     format(To, "~w", [Tag]).
-emit_reified_(To, dict_tag(_, _, Tag)), var(Tag) =>
+emit_reified_(To, dict_tag(Tag)), var(Tag) =>
     % if Tag is still a var, it must be anonymous
     format(To, "_", []).
-emit_reified_(To, dict_tag(_, _, Tag)) =>
+emit_reified_(To, dict_tag(Tag)) =>
     % if Tag is still a var, it must be anonymous
     format(To, "~w", [Tag]).
-emit_reified_(To, dict_begin(_, _)) =>
+emit_reified_(To, dict_begin) =>
     format(To, "{", []).
-emit_reified_(To, dict_sep(_, _)) =>
+emit_reified_(To, dict_sep) =>
     format(To, ":", []).
-emit_reified_(To, dict_end(_, _)) =>
+emit_reified_(To, dict_end) =>
     format(To, "}", []).
 
 %! add_whitespace_terms(+State:dict, +Reified:list, -Formatted:list) is det.
@@ -213,6 +228,12 @@ is_operator(Func) :-
     current_source(Path),
     xref_op(Path, op(_, _, Func)).
 
+expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
+                         Expanded, ExTail), functor(Term, ',', _, _) =>
+    % special-case comma terms to be reified as commas
+    Expanded = [comma(FFrom, FTo)|ExpandedTail0],
+    functor(Term, _, Arity, _),
+    expand_term_subterms_positions(Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
                          Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
