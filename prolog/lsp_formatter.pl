@@ -139,8 +139,6 @@ add_whitespace_terms(_State, [], [newline]) :- !.
 add_whitespace_terms(State, [Term|Terms], Out) :-
     arg(1, Term, TermStart),
     stream_position_at_offset(State.line_bounds, TermStart, Pos),
-    % hm...but after a term start, should (usually?) be an open paren,
-    % not a space, similiarly between a term's args, list's items, etc
     sync_position_whitespace(State, Pos, Out, Out1),
     Out1 = [Term|Out2],
     arg(2, Term, TermEnd),
@@ -155,7 +153,6 @@ expand_term_positions([InfoDict|Rest], Expanded0) :-
     ;  Expanded1 = Expanded0 ),
 
     Term = InfoDict.term,
-    % TODO: will also need InfoDict.variable_names
     expand_subterm_positions(Term, toplevel, InfoDict.subterm, Expanded1, Expanded2),
     expand_term_positions(Rest, Expanded2).
 
