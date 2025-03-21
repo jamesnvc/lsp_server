@@ -1,4 +1,5 @@
-:- module(lsp_formatter, []).
+:- module(lsp_formatter, [ reified_format_for_file/2,
+                           emit_reified/2 ]).
 /** <module> LSP Formatter
 
 Module for formatting Prolog source code
@@ -15,8 +16,16 @@ Module for formatting Prolog source code
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [read_line_to_codes/2]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Reading in terms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- thread_local current_source/1.
 
+%! file_lines_start_end(+Path:text, -LineCharRange:list) is det.
+%
+%  Construct a mapping of file offsets to line numbers in the file at
+%  Path. LineCharRange will be a list containing terms like
+%  =line_start_end(LineNumber, LineOffsetStart, LineOffsetEnd)=
 file_lines_start_end(Path, LineCharRange) :-
     Acc = line_data([], line(1, 0)),
     setup_call_cleanup(
@@ -37,6 +46,22 @@ file_lines_start_end(Path, LineCharRange) :-
     arg(1, Acc, RangesReversed),
     reverse(RangesReversed, LineCharRange).
 
+%! read_term_positions(+Path:text, -TermsWithPositions:list) is det.
+%
+%  Read in all the terms in the file at Path, using
+%  prolog_read_source_term/4, to a list of dictionaries.
+%  Each dictionary has the following keys:
+%    * term
+%      The term read in, with variables replace with the term var(VariableName).
+%    * pos
+%      The position of the term (see [[prolog_read_source_term/4]]).
+%    * subterm
+%      The position of the subterms in term (see [[prolog_read_source_term/4]]).
+%    * variable_names
+%      List of Name=Var terms for the variables in Term. Note that the
+%      variables in term have already been replace with var(Name)
+%    * comments
+%      Comments in the term, with the same format as prolog_read_source_term/4
 read_term_positions(Path, TermsWithPositions) :-
     Acc = data([]),
     prolog_canonical_source(Path, SourceId),
@@ -60,6 +85,10 @@ read_term_positions(Path, TermsWithPositions) :-
     arg(1, Acc, TermsWithPositionsRev),
     reverse(TermsWithPositionsRev, TermsWithPositions).
 
+%! reified_format_for_file(+Path:string, -Reified:list) is det.
+%
+%  Read the prolog source file at Path into a flattened list of terms
+%  indicating content, comments, and whitespace.
 reified_format_for_file(Path, Reified) :-
     xref_source(Path),
     assertz(current_source(Path)),
@@ -71,6 +100,10 @@ reified_format_for_file(Path, Reified) :-
     add_whitespace_terms(InitState, Reified1, Reified),
     retractall(current_source(Path)).
 
+%! emit_reified(+To, +Reified) is det.
+%
+%  Output source file as read with reified_format_for_file/2 to To, as
+%  format/3.
 emit_reified(_, []) :- !.
 emit_reified(To, [Term|Rest]) :-
     emit_reified_(To, Term),
@@ -137,6 +170,10 @@ emit_reified_(To, dict_sep(_, _)) =>
 emit_reified_(To, dict_end(_, _)) =>
     format(To, "}", []).
 
+%! add_whitespace_terms(+State:dict, +Reified:list, -Formatted:list) is det.
+%
+%  Add terms indicating whitespace and newlines in between positioned
+%  terms, as created by reified_format_for_file/2.
 add_whitespace_terms(_State, [], [newline]) :- !.
 add_whitespace_terms(State, [Term|Terms], Out) :-
     arg(1, Term, TermStart),
@@ -329,18 +366,14 @@ file_offset_line_position(LineCharMap, CharCount, Line, LinePosition) :-
     between(Start, End, CharCount), !,
     LinePosition is CharCount - Start.
 
-subterm_end_position(LineCharMap, term_position(_From, To, _FFrom, _FTo, _), EndPos) =>
-    % TODO probably do need to split out the functor & the whole thing...somewhere
-    % breaking the rules, building an opaque term
-    stream_position_at_offset(LineCharMap, To, EndPos).
-subterm_end_position(LineCharMap, _From-To, EndPos) =>
-    stream_position_at_offset(LineCharMap, To, EndPos).
-
 stream_position_at_offset(LineCharMap, To, EndPos) :-
     CharCount = To,
     ByteCount = To, % need to check for multibyte...
     file_offset_line_position(LineCharMap, To, LineCount, LinePosition),
+    % breaking the rules, building an opaque term
     EndPos = '$stream_position_data'(CharCount, LineCount, LinePosition, ByteCount).
+
+% Helpers
 
 term_end_position(Term, Position) :-
     setup_call_cleanup(
