@@ -74,7 +74,7 @@ correct_indentation(State0,
     indent_state_push(State0, defn_body, State1),
     correct_indentation(State1, InRest, OutRest).
 correct_indentation(State0, [newline|InRest], [newline|Out]) :-
-    indent_state_top(State0, defn_body), !,
+    indent_state_contains(State0, defn_body), !,
     indent_state_push(State0, defn_body_indent, State1),
     correct_indentation(State1, InRest, Out).
 correct_indentation(State0, [In|InRest], Out) :-
@@ -82,7 +82,8 @@ correct_indentation(State0, [In|InRest], Out) :-
     ( In = white(_)
     -> correct_indentation(State0, InRest, Out)
     ;  ( indent_state_pop(State0, State1),
-         Out = [white(#toplevel_indent)|OutRest],
+         whitespace_indentation_for_state(State1, Indent),
+         Out = [white(Indent)|OutRest],
          correct_indentation(State1, [In|InRest], OutRest) )).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
@@ -103,8 +104,20 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     correct_indentation(State0, InRest, OutRest).
 correct_indentation(_, [], []) :- !.
 
+whitespace_indentation_for_state(State, Indent) :-
+    get_dict(state, State, Stack),
+    aggregate_all(count,
+                  ( member(X, Stack),
+                    memberchk(X, [parens_begin, braces_begin, term_begin(_, _, _)]) ),
+                  ParensCount),
+    Indent is ParensCount * 2 + #toplevel_indent.
+
 indent_state_top(State, Top) :-
     _{state: [Top|_]} :< State.
+
+indent_state_contains(State, Needle) :-
+    _{state: Stack} :< State,
+    memberchk(Needle, Stack).
 
 indent_state_push(State0, NewTop, State1) :-
     _{state: Stack} :< State0,
