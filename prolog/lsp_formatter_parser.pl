@@ -292,7 +292,8 @@ expand_subterm_positions(Term, TermState, parentheses_term_position(From, To, Co
 expand_subterm_positions(Term, TermState, dict_position(_From, To, TagFrom, TagTo, KeyValPos),
                         Expanded, Tail) =>
     is_dict(Term, Tag),
-    Expanded = [dict_tag(TagFrom, TagTo, Tag), dict_begin(TagTo, To)|Tail0],
+    DictBraceTo is TagTo + 1,
+    Expanded = [dict_tag(TagFrom, TagTo, Tag), dict_begin(TagTo, DictBraceTo)|Tail0],
     expand_dict_kvs_positions(Term, KeyValPos, Tail0, Tail1),
     succ(To1, To),
     Tail1 = [dict_end(To1, To)|Tail2],
