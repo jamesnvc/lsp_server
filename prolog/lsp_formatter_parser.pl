@@ -146,19 +146,22 @@ emit_reified_(To, string(T)) =>
     format(To, "`~s`", [T]).
 emit_reified_(To, term_begin(Func, _, Parens)) =>
     ( is_operator(Func)
-    -> format(To, "~w", [Func])
-    ; format(To, "~q", [Func]) ),
+    -> MainF = "~w"
+    ; MainF = "~q" ),
     ( Parens = true
-    -> format(To, "(", [])
-    ; true).
+    -> AfterF = "("
+    ; AfterF = "" ),
+    string_concat(MainF, AfterF, Format),
+    format(To, Format, [Func]).
 emit_reified_(To, term_end(Parens, TermState)) =>
-    % how do we know where to put the '.'?
+
     ( Parens = true
-    -> format(To, ")", [])
-    ; true),
+    -> MaybeClose = ")"
+    ; MaybeClose = "" ),
     ( TermState = toplevel
-    -> format(To, ".", [])
-    ; true ).
+    -> MaybeStop = "."
+    ; MaybeStop = "" ),
+    format(To, "~w~w", [MaybeClose, MaybeStop]).
 emit_reified_(To, list_begin) =>
     format(To, "[", []).
 emit_reified_(To, list_tail) =>
