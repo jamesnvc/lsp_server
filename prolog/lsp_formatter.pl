@@ -82,8 +82,8 @@ correct_indentation(State0, [In|InRest], Out) :-
     ( In = white(_)
     -> correct_indentation(State0, InRest, Out)
     ;  ( indent_state_pop(State0, State1),
-         Out = [white(#toplevel_indent), In|OutRest],
-         correct_indentation(State1, InRest, OutRest) )).
+         Out = [white(#toplevel_indent)|OutRest],
+         correct_indentation(State1, [In|InRest], OutRest) )).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_begin', Name), !,
