@@ -260,7 +260,8 @@ expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
     assertion(is_listish(Term)),
-    Expanded = [list_begin(From, To)|Expanded1],
+    ListBeginTo is From + 1,
+    Expanded = [list_begin(From, ListBeginTo)|Expanded1],
     expand_list_subterms_positions(Term, Elms, Expanded1, Expanded2),
     succ(To0, To),
     (  HasTail = none
