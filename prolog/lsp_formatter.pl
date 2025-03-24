@@ -101,8 +101,7 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     correct_indentation(State1, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     correct_indentation(State0, InRest, OutRest).
-correct_indentation(_, [], []) :-
-    debug(lsp(format), "INDENTING - DONE", []).
+correct_indentation(_, [], []) :- !.
 
 indent_state_top(State, Top) :-
     _{state: [Top|_]} :< State.
