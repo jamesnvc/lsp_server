@@ -137,6 +137,8 @@ emit_reified_(To, simple(T)), var(T) =>
     format(To, "_", []).
 emit_reified_(To, simple(T)) =>
     format(To, "~q", [T]).
+emit_reified_(To, simple_quoted(T)) =>
+    format(To, "'~q'", [T]).
 emit_reified_(To, string(T)), string(T) =>
     format(To, "~q", [T]).
 emit_reified_(To, string(T)) =>
@@ -256,7 +258,12 @@ expand_subterm_positions(Term, TermState, string_position(From, To), Expanded, T
     Expanded = [string(From, To, Term)|Tail0],
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
-    Expanded = [simple(From, To, Term)|Tail0],
+    FromToDiff is To - From,
+    emit_reified_(string(S), simple(Term)), string_length(S, LenDif),
+    ( FromToDiff \= LenDif
+    -> assertion(FromToDiff is LenDif + 2), % because the thing was quoted in source
+       Expanded = [simple_quoted(From, To, Term)|Tail0]
+    ; Expanded = [simple(From, To, Term)|Tail0] ),
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
     assertion(is_listish(Term)),
