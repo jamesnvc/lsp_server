@@ -79,6 +79,17 @@ correct_indentation(State0,
     indent_state_push(State1, defn_body, State2),
     update_state_column(State2, term_begin(Neckish, T, P), State3),
     correct_indentation(State3, InRest, OutRest).
+correct_indentation(State0, [In|InRest], Out) :-
+    In = term_begin('->', compound, false),
+    indent_state_top(State0, defn_body_indent), !,
+    indent_state_pop(State0, State1),
+    % if should align with the open paren, not the first term
+    indent_state_pop(State1, State2),
+    indent_state_push(State2, boop, State3),
+    whitespace_indentation_for_state(State3, Indent),
+    Out = [white(Indent)|OutRest],
+    update_state_column(State3, white(Indent), State4),
+    correct_indentation(State4, [In|InRest], OutRest).
 correct_indentation(State0, [newline|InRest], [newline|Out]) :-
     indent_state_contains(State0, defn_body), !,
     ( indent_state_top(State0, defn_body_indent)
