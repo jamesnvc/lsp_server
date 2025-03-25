@@ -73,13 +73,11 @@ read_term_positions(Path, TermsWithPositions) :-
                                                       variable_names(VarNames),
                                                       comments(Comments),
                                                       syntax_errors(error)]),
-          ( Term \= end_of_file
-          -> maplist([Name=Var]>>( Var = var(Name) ), VarNames),
-             arg(1, Acc, Lst),
-             nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
-                                  varible_names: VarNames, comments: Comments}|Lst]),
-             fail
-          ; ! )
+          maplist([Name=Var]>>( Var = var(Name) ), VarNames),
+          arg(1, Acc, Lst),
+          nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
+                               varible_names: VarNames, comments: Comments}|Lst]),
+          Term = end_of_file, !
         ),
         prolog_close_source(Stream)),
     arg(1, Acc, TermsWithPositionsRev),
@@ -215,7 +213,11 @@ expand_term_positions([InfoDict|Rest], Expanded0) :-
     ;  Expanded1 = Expanded0 ),
 
     Term = InfoDict.term,
-    expand_subterm_positions(Term, toplevel, InfoDict.subterm, Expanded1, Expanded2),
+    ( Term \= end_of_file % just for comments at the end
+    -> expand_subterm_positions(Term, toplevel, InfoDict.subterm,
+                                Expanded1, Expanded2)
+    ;  Expanded2 = Expanded1 ),
+
     expand_term_positions(Rest, Expanded2).
 
 expand_comments_positions([], Tail, Tail) :- !.
