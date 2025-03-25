@@ -53,32 +53,36 @@ commas_exactly_one_space([Other|Rest], Out) =>
 
 #define(toplevel_indent, 4).
 
+correct_indentation(_, [], []) :- !.
 correct_indentation(State0,
-                    [term_begin(Func, Arity, Parens)|InRest],
-                    [term_begin(Func, Arity, Parens)|OutRest]) :-
+                    [term_begin(Func, Type, Parens)|InRest],
+                    [term_begin(Func, Type, Parens)|OutRest]) :-
     indent_state_top(State0, toplevel),
     Func = ':-', !,
     indent_state_push(State0, declaration, State1),
-    update_state_column(State1, term_begin(Func, Arity, Parens), State2),
+    update_state_column(State1, term_begin(Func, Type, Parens), State2),
     correct_indentation(State2, InRest, OutRest).
 correct_indentation(State0,
-                    [term_begin(Func, Arity, Parens)|InRest],
-                    [term_begin(Func, Arity, Parens)|OutRest]) :-
+                    [term_begin(Func, Type, Parens)|InRest],
+                    [term_begin(Func, Type, Parens)|OutRest]) :-
     indent_state_top(State0, toplevel), !,
     indent_state_push(State0, defn_head, State1),
-    update_state_column(State1, term_begin(Func, Arity, Parens), State2),
+    update_state_column(State1, term_begin(Func, Type, Parens), State2),
     correct_indentation(State2, InRest, OutRest).
 correct_indentation(State0,
-                    [term_begin(Neckish, A, P)|InRest],
-                    [term_begin(Neckish, A, P)|OutRest]) :-
+                    [term_begin(Neckish, T, P)|InRest],
+                    [term_begin(Neckish, T, P)|OutRest]) :-
     memberchk(Neckish, [':-', '=>', '-->']),
     indent_state_top(State0, defn_head), !,
-    indent_state_push(State0, defn_body, State1),
-    update_state_column(State1, term_begin(Neckish, A, P), State2),
-    correct_indentation(State2, InRest, OutRest).
+    indent_state_pop(State0, State1),
+    indent_state_push(State1, defn_body, State2),
+    update_state_column(State2, term_begin(Neckish, T, P), State3),
+    correct_indentation(State3, InRest, OutRest).
 correct_indentation(State0, [newline|InRest], [newline|Out]) :-
     indent_state_contains(State0, defn_body), !,
-    indent_state_push(State0, defn_body_indent, State1),
+    ( indent_state_top(State0, defn_body_indent)
+    -> State1 = State0
+    ; indent_state_push(State0, defn_body_indent, State1) ),
     update_state_column(State1, newline, State2),
     correct_indentation(State2, InRest, Out).
 correct_indentation(State0, [In|InRest], Out) :-
@@ -86,21 +90,27 @@ correct_indentation(State0, [In|InRest], Out) :-
     ( In = white(_)
     -> correct_indentation(State0, InRest, Out)
     ;  ( indent_state_pop(State0, State1),
-         whitespace_indentation_for_state(State1, Indent),
+         update_alignment(State1, State2),
+         whitespace_indentation_for_state(State2, Indent),
          Out = [white(Indent)|OutRest],
-         update_state_column(State1, white(Indent), State2),
-         correct_indentation(State2, [In|InRest], OutRest) )).
+         update_state_column(State2, white(Indent), State3),
+         correct_indentation(State3, [In|InRest], OutRest) )).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_begin', Name), !,
-    indent_state_push(State0, In, State1),
+    % if we've just begun something...
+    update_alignment(State0, State1),
     update_state_column(State1, In, State2),
-    correct_indentation(State2, InRest, OutRest).
+    indent_state_push(State2, begin(State2.column, In), State3),
+    correct_indentation(State3, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     indent_state_top(State0, defn_head),
-    In = term_end(_, S), S \= toplevel, !,
-    update_state_column(State0, In, State1),
+    In = term_end(_, S),
+    S \= toplevel, !,
+    % don't pop state here, because this is the head of a definition;
+    % we expect the next thing to be a neck (or guard or context)...
     % should state change to be like "expect head" or something?
+    update_state_column(State0, In, State1),
     correct_indentation(State1, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
@@ -109,10 +119,27 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     update_state_column(State1, In, State2),
     correct_indentation(State2, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
+    memberchk(In, [white(_), newline]), !,
     update_state_column(State0, In, State1),
     correct_indentation(State1, InRest, OutRest).
-correct_indentation(_, [], []) :- !.
+correct_indentation(State0, [In|InRest], [In|OutRest]) :- !,
+    ( In \= white(_)
+    -> update_alignment(State0, State1)
+    ; State1 = State0 ),
+    update_state_column(State1, In, State2),
+    correct_indentation(State2, InRest, OutRest).
 
+update_alignment(State0, State2) :-
+    ( indent_state_top(State0, begin(Col, _))
+    -> indent_state_pop(State0, State1),
+       AlignCol is max(Col + 1, State1.column),
+       indent_state_push(State1, align(AlignCol), State2)
+    ; State2 = State0 ).
+
+whitespace_indentation_for_state(State, Indent) :-
+    indent_state_top(State, align(Indent)), !.
+% whitespace_indentation_for_state(State, Indent) :-
+%     indent_state_top(State, begin(Indent, _)), !.
 whitespace_indentation_for_state(State, Indent) :-
     get_dict(state, State, Stack),
     aggregate_all(count,
@@ -181,3 +208,7 @@ create_edit_list(LineNum, [OrigLine|OrigRest], [FormattedLine|FormattedRest], Ed
     ),
     succ(LineNum, LineNum1),
     create_edit_list(LineNum1, OrigRest, FormattedRest, EditRest).
+
+% lsp_formatter:file_formatted('/Users/james/Projects/prolog-lsp/prolog/format_test2.pl', Src), lsp_formatter_parser:emit_reified(user_output, Src).
+
+% lsp_formatter:file_formatted('/Users/james/Projects/prolog-lsp/prolog/format_test.pl', Src), setup_call_cleanup(open('/Users/james/tmp/formatted_out.pl', write, S), lsp_formatter_parser:emit_reified(S, Src), close(S)).
