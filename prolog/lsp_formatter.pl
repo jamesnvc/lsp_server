@@ -132,7 +132,7 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :- !,
 update_alignment(State0, State2) :-
     ( indent_state_top(State0, begin(Col, _))
     -> indent_state_pop(State0, State1),
-       AlignCol is max(Col + 1, State1.column),
+       AlignCol is max(Col, State1.column),
        indent_state_push(State1, align(AlignCol), State2)
     ; State2 = State0 ).
 
