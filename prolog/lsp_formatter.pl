@@ -208,13 +208,9 @@ create_edit_list(LineNum, [], [NewLine|NewLines], [Edit|Edits]) :- !,
 create_edit_list(LineNum, [OrigLine|OrigRest], [FormattedLine|FormattedRest], Edits) :-
     (   OrigLine \= FormattedLine  % Only create an edit if the line has changed
     -> string_length(OrigLine, LineLen), %TODO: what should this be?
-       Edit = _{
-                  range: _{
-                             start: _{line: LineNum, character: 0},
-                             end: _{line: LineNum, character: LineLen}
-                         },
-                  newText: FormattedLine
-              },
+       Edit = _{range: _{start: _{line: LineNum, character: 0},
+                         end: _{line: LineNum, character: LineLen}},
+                newText: FormattedLine},
        Edits = [Edit|EditRest]
     ; EditRest = Edits
     ),
