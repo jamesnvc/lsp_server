@@ -42,11 +42,11 @@ beep(A), [X] -->
 
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
     ( is_operator(Func)
-      -> format(To, "~w", [Func])
-      ;    format(To, "~q", [Func]) ),
+    -> format(To, "~w", [Func])
+    ;    format(To, "~q", [Func]) ),
     ( Parens = true
-      -> format(To, "(", [])
-      ; true ).
+    -> format(To, "(", [])
+    ; true ).
 
 /*
 weird_quasi(Quasi) :-
@@ -74,7 +74,7 @@ eval_20(Eq, RetType, Depth, Self, [V|VI], VVO):-  \+ is_list(VI), !,
 foo(A) :-
     findall(X, (
                 member(X, A),
-                
+
                 0 is X mod 2
             ),
             _).
