@@ -2,8 +2,9 @@
 
 :- use_module(library(plunit)).
 
-:- use_module(lsp_formatter).
-:- use_module(lsp_formatter_parser).
+:- include('../prolog/path_add.pl').
+:- use_module(lsp(lsp_formatter)).
+:- use_module(lsp(lsp_formatter_parser)).
 
 :- use_module(library(filesex), [relative_file_name/3]).
 :- use_module(library(readutil), [ read_file_to_string/3 ]).

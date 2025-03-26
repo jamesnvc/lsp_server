@@ -11,8 +11,9 @@ Module for formatting Prolog source code
 :- use_module(library(readutil), [ read_file_to_string/3 ]).
 :- use_module(library(macros)).
 
-:- use_module(lsp_formatter_parser, [ reified_format_for_file/2,
-                                      emit_reified/2 ]).
+:- include('path_add.pl').
+:- use_module(lsp(lsp_formatter_parser), [ reified_format_for_file/2,
+                                           emit_reified/2 ]).
 
 file_format_edits(Path, Edits) :-
     read_file_to_string(Path, OrigText, []),

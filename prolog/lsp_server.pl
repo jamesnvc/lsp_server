@@ -19,16 +19,18 @@ The main entry point for the Language Server implementation.
                                 tcp_open_socket/2]).
 :- use_module(library(yall)).
 
-:- use_module(lsp_utils).
-:- use_module(lsp_checking, [check_errors/2]).
-:- use_module(lsp_parser, [lsp_request//1]).
-:- use_module(lsp_changes, [handle_doc_changes/2]).
-:- use_module(lsp_completion, [completions_at/3]).
-:- use_module(lsp_colours, [file_colours/2,
+:- include('path_add.pl').
+
+:- use_module(lsp(lsp_utils)).
+:- use_module(lsp(lsp_checking), [check_errors/2]).
+:- use_module(lsp(lsp_parser), [lsp_request//1]).
+:- use_module(lsp(lsp_changes), [handle_doc_changes/2]).
+:- use_module(lsp(lsp_completion), [completions_at/3]).
+:- use_module(lsp(lsp_colours), [file_colours/2,
                             file_range_colours/4,
                             token_types/1,
                             token_modifiers/1]).
-:- use_module(lsp_formatter, [file_format_edits/2]).
+:- use_module(lsp(lsp_formatter), [file_format_edits/2]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
