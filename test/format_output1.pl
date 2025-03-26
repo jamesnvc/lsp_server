@@ -69,21 +69,21 @@ burf :-
 eval_20(Eq, RetType, Depth, Self, [V|VI], VVO):-  \+ is_list(VI), !,
     eval_args(Eq, RetType, Depth, Self, VI, VM),
     ( VM\==VI -> eval_args(Eq, RetType, Depth, Self, [V|VM], VVO) ;
-        (eval_args(Eq, RetType, Depth, Self, V, VV), (V\==VV -> eval_args(Eq, RetType, Depth, Self, [VV|VI], VVO) ; VVO = [V|VI])) ).
+          (eval_args(Eq, RetType, Depth, Self, V, VV), (V\==VV -> eval_args(Eq, RetType, Depth, Self, [VV|VI], VVO) ; VVO = [V|VI])) ).
 
 foo(A) :-
     findall(X, (
-              member(X, A),
+                member(X, A),
 
-              0 is X mod 2
-              ),
+                0 is X mod 2
+                ),
             _).
 
 bar(A) :-
     findall(X, (
-              member(X, A),
-              0 is X mod 2
-              ),
+                member(X, A),
+                0 is X mod 2
+                ),
             _).
 
 bas(A) :-

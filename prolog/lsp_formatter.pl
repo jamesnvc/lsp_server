@@ -117,7 +117,7 @@ correct_indentation(State0, [In|InRest], Out) :-
          ( indent_state_top(State1, begin(_, _))
          -> indent_state_pop(State1, StateX),
             whitespace_indentation_for_state(StateX, PrevIndent),
-            IncPrevIndent is PrevIndent + 2,
+            IncPrevIndent is PrevIndent + 4,
             indent_state_push(StateX, align(IncPrevIndent), State2)
          ; State2 = State1 ),
          update_alignment(State2, State3),
