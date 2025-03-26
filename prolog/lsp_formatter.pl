@@ -128,6 +128,8 @@ correct_indentation(State0, [In|InRest], Out) :-
          ; State2 = State1 ),
          update_alignment(State2, State3),
          ( ending_term(In)
+         % TODO: this needs some more special casing to act the way I'd like
+         % (that is, when the ending )/]/} is on its own line)
          -> indent_state_pop(State3, State_),
             pop_state_open_spaces(State3, _, State4),
             push_state_open_spaces(State4, 0, State5),
