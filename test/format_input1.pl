@@ -107,4 +107,11 @@ whitespace_indentation_for_state(State, Indent) :-
                   ParensCount),
     Indent is ParensCount * 2 + _ToplevelIndent.
 
+%aoeu
+hello(A) :-
+    ( A
+    -> gurf
+    ; burf
+    ).
+
 % end comment

@@ -25,7 +25,7 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
     memberchk(Neckish, [':-', '=>', '-->']),
     findall(X, ( member(X, A),
                  0 is X mod 2
-             ),
+            ),
             _),
     findall(X,
             ( member(X, A),
@@ -89,14 +89,14 @@ bar(A) :-
 bas(A) :-
     findall(X, ( member(X, A),
                  0 is X mod 2
-             ),
+            ),
             _).
 
 baz(A) :-
     findall(X,
             ( member(X, A),
               0 is X mod 2
-             ),
+            ),
             _).
 
 whitespace_indentation_for_state(State, Indent) :-
@@ -106,5 +106,12 @@ whitespace_indentation_for_state(State, Indent) :-
                     memberchk(X, [parens_begin, braces_begin, term_begin(_, _, _)]) ),
                   ParensCount),
     Indent is ParensCount * 2 + _ToplevelIndent.
+
+%aoeu
+hello(A) :-
+    ( A
+    -> gurf
+    ; burf
+    ).
 
 % end comment

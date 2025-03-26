@@ -129,11 +129,14 @@ correct_indentation(State0, [In|InRest], Out) :-
          update_alignment(State2, State3),
          ( ending_term(In)
          -> indent_state_pop(State3, State_),
+            pop_state_open_spaces(State3, _, State4),
+            push_state_open_spaces(State4, 0, State5),
             whitespace_indentation_for_state(State_, Indent)
-         ; whitespace_indentation_for_state(State3, Indent) ),
+         ; ( whitespace_indentation_for_state(State3, Indent),
+             State5 = State3 ) ),
          Out = [white(Indent)|OutRest],
-         update_state_column(State3, white(Indent), State4),
-         correct_indentation(State4, [In|InRest], OutRest) )).
+         update_state_column(State5, white(Indent), State6),
+         correct_indentation(State6, [In|InRest], OutRest) )).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_begin', Name), !,
