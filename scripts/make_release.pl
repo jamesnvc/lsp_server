@@ -1,6 +1,7 @@
 :- module(make_release, []).
 
-:- use_module(library(readutil), [read_file_to_terms/3]).
+:- use_module(library(readutil), [read_file_to_terms/3,
+                                  read_line_to_string/2]).
 
 :- initialization(main, main).
 
@@ -48,6 +49,11 @@ main(Args) :-
     -> true
     ;  ( format(user_error, "Usage: make_release.pl [major|minor|patch]~n", []),
          halt(1) )),
+    ( stream_property(user_input, tty(true))
+    -> format("Make new release? [y/n]: ", []),
+       read_line_to_string(user_input, Input),
+       Input == "y"
+    ; true ),
     update_pack_version(ReleaseType, NewVersion),
     format("Bumping to ~w~n", [NewVersion]),
     git_commit_and_tag(NewVersion),
