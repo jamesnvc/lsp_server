@@ -36,8 +36,16 @@ apply_format_rules(Content, Formatted) :-
     phrase(formatter_rules, Content, Formatted).
 
 formatter_rules -->
+    collapse_whitespace,
     commas_exactly_one_space,
-    correct_indentation(_{state: [toplevel], column: 0}).
+    correct_indentation(_{state: [toplevel], column: 0, leading_spaces: []}).
+
+collapse_whitespace([], []) :- !.
+collapse_whitespace([white(A), white(B)|InRest], [white(AB)|OutRest]) :- !,
+    AB is A + B,
+    collapse_whitespace(InRest, OutRest).
+collapse_whitespace([In|InRest], [In|OutRest]) :-
+    collapse_whitespace(InRest, OutRest).
 
 commas_exactly_one_space([], Out) => Out = [].
 commas_exactly_one_space([white(_), comma|InRest], Out) =>
@@ -63,14 +71,16 @@ correct_indentation(State0,
     Func = ':-', !,
     indent_state_push(State0, declaration, State1),
     update_state_column(State1, term_begin(Func, Type, Parens), State2),
-    correct_indentation(State2, InRest, OutRest).
+    push_state_open_spaces(State2, InRest, State3),
+    correct_indentation(State3, InRest, OutRest).
 correct_indentation(State0,
                     [term_begin(Func, Type, Parens)|InRest],
                     [term_begin(Func, Type, Parens)|OutRest]) :-
     indent_state_top(State0, toplevel), !,
     indent_state_push(State0, defn_head, State1),
     update_state_column(State1, term_begin(Func, Type, Parens), State2),
-    correct_indentation(State2, InRest, OutRest).
+    push_state_open_spaces(State2, InRest, State3),
+    correct_indentation(State3, InRest, OutRest).
 correct_indentation(State0,
                     [term_begin(Neckish, T, P)|InRest],
                     [term_begin(Neckish, T, P)|OutRest]) :-
@@ -79,7 +89,8 @@ correct_indentation(State0,
     indent_state_pop(State0, State1),
     indent_state_push(State1, defn_body, State2),
     update_state_column(State2, term_begin(Neckish, T, P), State3),
-    correct_indentation(State3, InRest, OutRest).
+    push_state_open_spaces(State3, InRest, State4),
+    correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], Out) :-
     In = term_begin('->', compound, false),
     indent_state_top(State0, defn_body_indent), !,
@@ -115,7 +126,8 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     update_alignment(State0, State1),
     update_state_column(State1, In, State2),
     indent_state_push(State2, begin(State2.column, In), State3),
-    correct_indentation(State3, InRest, OutRest).
+    push_state_open_spaces(State3, InRest, State4),
+    correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     indent_state_top(State0, defn_head),
     In = term_end(_, S),
@@ -124,13 +136,23 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     % we expect the next thing to be a neck (or guard or context)...
     % should state change to be like "expect head" or something?
     update_state_column(State0, In, State1),
-    correct_indentation(State1, InRest, OutRest).
-correct_indentation(State0, [In|InRest], [In|OutRest]) :-
+    pop_state_open_spaces(State1, _, State2),
+    correct_indentation(State2, InRest, OutRest).
+correct_indentation(State0, [In|InRest], Out) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_end', Name), !,
     indent_state_pop(State0, State1),
     update_state_column(State1, In, State2),
-    correct_indentation(State2, InRest, OutRest).
+    pop_state_open_spaces(State2, Spaces, State3),
+    ( In \= term_end(false, _), In \= term_end(_, toplevel), Spaces > 0
+    -> Out = [white(Spaces), In|OutRest]
+    ;  Out = [In|OutRest] ),
+    correct_indentation(State3, InRest, OutRest).
+correct_indentation(State0, [In, NextIn|InRest], Out) :-
+    In = white(_),
+    functor(NextIn, Name, _Arity, _Type),
+    atom_concat(_, '_end', Name), !,
+    correct_indentation(State0, [NextIn|InRest], Out).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     memberchk(In, [white(_), newline]), !,
     update_state_column(State0, In, State1),
@@ -183,6 +205,16 @@ update_state_column(State0, Term, State1) :-
     string_length(S, Len),
     NewCol is State0.column + Len,
     put_dict(column, State0, NewCol, State1).
+
+push_state_open_spaces(State0, Next, State1) :-
+    _{leading_spaces: PrevSpaces} :< State0,
+    ( Next = [white(N)|_]
+    -> put_dict(leading_spaces, State0, [N|PrevSpaces], State1)
+    ; put_dict(leading_spaces, State0, [0|PrevSpaces], State1) ).
+
+pop_state_open_spaces(State0, Top, State1) :-
+    _{leading_spaces: [Top|Spaces]} :< State0,
+    put_dict(leading_spaces, State0, Spaces, State1).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create a List of Edits from the Original and Formatted Lines

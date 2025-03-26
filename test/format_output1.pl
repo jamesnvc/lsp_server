@@ -10,6 +10,7 @@ Module for formatting Prolog source code
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [read_line_to_codes/2,
                                   read_file_to_codes/3]).
+:- use_module(library(dcg/basics), [ whites//1 ]).
 
 :- dynamic foo/1.
 :- dynamic bar/2.
@@ -24,7 +25,7 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
     memberchk(Neckish, [':-', '=>', '-->']),
     findall(X, ( member(X, A),
                  0 is X mod 2
-                 ),
+                  ),
             _),
     findall(X,
             ( member(X, A),
@@ -36,7 +37,7 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
 beep(A), [X] -->
     { X = beep },
     { Z = beep,
-      quux(Z), _W = [   110, 110, 32] },
+      quux(Z), _W = [   110, 110, 32   ] },
     string_without(`foo`, A).
 
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
@@ -45,7 +46,7 @@ emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
     ;    format(To, "~q", [Func]) ),
     ( Parens = true
     -> format(To, "(", [])
-    ; true).
+    ; true ).
 
 /*
 weird_quasi(Quasi) :-
@@ -55,7 +56,7 @@ weird_quasi(Quasi) :-
 burf :-
     A = _{
             a: 1, b: [x, "y", 'Z'|Tail], 'C': x{x: 1, b: 2}
- },
+},
     write([1, 2|_]), write([1, 2|[x]]),
    B = foo{q: q},
   C = Something{x: y},
@@ -68,7 +69,7 @@ burf :-
 eval_20(Eq, RetType, Depth, Self, [V|VI], VVO):-  \+ is_list(VI), !,
     eval_args(Eq, RetType, Depth, Self, VI, VM),
     ( VM\==VI -> eval_args(Eq, RetType, Depth, Self, [V|VM], VVO) ;
-                                                                   (eval_args(Eq, RetType, Depth, Self, V, VV), (V\==VV -> eval_args(Eq, RetType, Depth, Self, [VV|VI], VVO) ; VVO = [V|VI]))).
+                                                                   (eval_args(Eq, RetType, Depth, Self, V, VV), (V\==VV -> eval_args(Eq, RetType, Depth, Self, [VV|VI], VVO) ; VVO = [V|VI])) ).
 
 foo(A) :-
     findall(X, (
@@ -88,14 +89,14 @@ bar(A) :-
 bas(A) :-
     findall(X, ( member(X, A),
                  0 is X mod 2
-                 ),
+                  ),
             _).
 
 baz(A) :-
     findall(X,
             ( member(X, A),
               0 is X mod 2
-              ),
+               ),
             _).
 
 whitespace_indentation_for_state(State, Indent) :-

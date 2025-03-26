@@ -10,6 +10,7 @@ Module for formatting Prolog source code
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [read_line_to_codes/2,
                                   read_file_to_codes/3]).
+:- use_module(library(dcg/basics), [ whites//1]).
 
 :- dynamic foo/1.
 :- dynamic(bar/2).
