@@ -25,7 +25,7 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
     memberchk(Neckish, [':-', '=>', '-->']),
     findall(X, ( member(X, A),
                  0 is X mod 2
-                  ),
+             ),
             _),
     findall(X,
             ( member(X, A),
@@ -42,11 +42,11 @@ beep(A), [X] -->
 
 emit_reified_(To, term_begin(_, _, Func, _, Parens)) =>
     ( is_operator(Func)
-    -> format(To, "~w", [Func])
-    ;    format(To, "~q", [Func]) ),
+      -> format(To, "~w", [Func])
+      ;    format(To, "~q", [Func]) ),
     ( Parens = true
-    -> format(To, "(", [])
-    ; true ).
+      -> format(To, "(", [])
+      ; true ).
 
 /*
 weird_quasi(Quasi) :-
@@ -56,10 +56,10 @@ weird_quasi(Quasi) :-
 burf :-
     A = _{
             a: 1, b: [x, "y", 'Z'|Tail], 'C': x{x: 1, b: 2}
-},
+        },
     write([1, 2|_]), write([1, 2|[x]]),
-   B = foo{q: q},
-  C = Something{x: y},
+    B = foo{q: q},
+    C = Something{x: y},
     Tail = [gurf],
     write(A.b),
     Something = aoeu,
@@ -74,29 +74,29 @@ eval_20(Eq, RetType, Depth, Self, [V|VI], VVO):-  \+ is_list(VI), !,
 foo(A) :-
     findall(X, (
                 member(X, A),
-
+                
                 0 is X mod 2
-                ),
+            ),
             _).
 
 bar(A) :-
     findall(X, (
                 member(X, A),
                 0 is X mod 2
-                ),
+            ),
             _).
 
 bas(A) :-
     findall(X, ( member(X, A),
                  0 is X mod 2
-                  ),
+             ),
             _).
 
 baz(A) :-
     findall(X,
             ( member(X, A),
               0 is X mod 2
-               ),
+             ),
             _).
 
 whitespace_indentation_for_state(State, Indent) :-
