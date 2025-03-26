@@ -114,4 +114,12 @@ hello(A) :-
     ; burf
     ).
 
+send_message(Stream, Msg) :-
+    put_dict(jsonrpc, Msg, "2.0", VersionedMsg),
+    atom_json_dict(JsonCodes, VersionedMsg, [as(codes), width(0)]),
+    phrase(utf8_codes(JsonCodes), UTF8Codes),
+    length(UTF8Codes, ContentLength),
+    format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]),
+    flush_output(Stream).
+
 % end comment

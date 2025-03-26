@@ -143,13 +143,9 @@ emit_reified_(To, string(T)) =>
     % string term, but not a string, must be codes
     format(To, "`~s`", [T]).
 emit_reified_(To, term_begin(Func, _, Parens)) =>
-    ( is_operator(Func)
-    -> MainF = "~w"
-    ; MainF = "~q" ),
     ( Parens = true
-    -> AfterF = "("
-    ; AfterF = "" ),
-    string_concat(MainF, AfterF, Format),
+    -> Format = "~q("
+    ;  Format = "~w" ),
     format(To, Format, [Func]).
 emit_reified_(To, term_end(Parens, TermState)) =>
 
@@ -232,29 +228,29 @@ expand_comment_positions(CommentPos-Comment, Expanded, ExpandedTail) :-
     stream_position_data(char_count, CommentEndPos, To),
     Expanded = [comment(From, To, Comment)|ExpandedTail].
 
-is_operator(Func) :-
-    current_op(_, _, Func), !.
-is_operator(Func) :-
+is_operator(Func, Type) :-
+    current_op(_, Type, Func), !.
+is_operator(Func, Type) :-
     current_source(Path),
-    xref_op(Path, op(_, _, Func)).
+    xref_op(Path, op(_, Type, Func)).
 
 expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
                          Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
     Expanded = [comma(FFrom, FTo)|ExpandedTail0],
     functor(Term, _, Arity, _),
-    expand_term_subterms_positions(Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
+    expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
                          Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
     % way to tell if term is parenthesized?
-    ( ( From \= FFrom ; is_operator(Func) )
+    ( ( From \= FFrom ; ( is_operator(Func, OpType), memberchk(OpType, [fx, fy]) ) )
     -> ( Parens = false, FTo1 = FTo )
     %   add space for the parenthesis
     ;  ( Parens = true, FTo1 is FTo + 1 ) ),
     Expanded = [term_begin(FFrom, FTo1, Func, TermType, Parens)|ExpandedTail0],
-    expand_term_subterms_positions(Term, Arity, 1, SubPoses,
+    expand_term_subterms_positions(Parens, Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
     succ(To0, To),
     ExpandedTail1 = [term_end(To0, To, Parens, TermState)|ExpandedTail2],
@@ -346,17 +342,16 @@ expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
     expand_subterm_positions(Term, TermState, Pos, Expanded, Expanded1),
     expand_list_subterms_positions(Terms, Poses, Expanded1, Tail).
 
-expand_term_subterms_positions(_Term, _Arity, _Arg, [], Tail, Tail) :- !.
-expand_term_subterms_positions(Term, Arity, Arg, [SubPos|Poses], Expanded, ExpandedTail) :-
+expand_term_subterms_positions(_Parens, _Term, _Arity, _Arg, [], Tail, Tail) :- !.
+expand_term_subterms_positions(Parens, Term, Arity, Arg, [SubPos|Poses], Expanded, ExpandedTail) :-
     assertion(between(1, Arity, Arg)),
     arg(Arg, Term, SubTerm),
-    functor(Term, Func, _, _),
-    ( \+ is_operator(Func), Arg < Arity
+    ( Parens = true, Arg < Arity
     -> State = subterm_item
     ;  State = false ),
     expand_subterm_positions(SubTerm, State, SubPos, Expanded, Expanded0),
     succ(Arg, Arg1),
-    expand_term_subterms_positions(Term, Arity, Arg1, Poses, Expanded0, ExpandedTail).
+    expand_term_subterms_positions(Parens, Term, Arity, Arg1, Poses, Expanded0, ExpandedTail).
 
 increment_stream_position(StartPos, RelPos, EndPos) :-
     stream_position_data(char_count, StartPos, StartCharCount),
