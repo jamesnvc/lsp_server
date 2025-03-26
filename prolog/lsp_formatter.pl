@@ -81,11 +81,17 @@ correct_indentation(State0,
     update_state_column(State1, term_begin(Func, Type, Parens), State2),
     push_state_open_spaces(State2, InRest, State3),
     correct_indentation(State3, InRest, OutRest).
+correct_indentation(State0, [In|InRest], [In|OutRest]) :-
+    indent_state_top(State0, toplevel),
+    In = simple(_), !,
+    indent_state_push(State0, defn_head_neck, State1),
+    update_state_column(State1, In, State2),
+    correct_indentation(State2, InRest, OutRest).
 correct_indentation(State0,
                     [term_begin(Neckish, T, P)|InRest],
                     [term_begin(Neckish, T, P)|OutRest]) :-
     memberchk(Neckish, [':-', '=>', '-->']),
-    indent_state_top(State0, defn_head), !,
+    indent_state_top(State0, defn_head_neck), !,
     indent_state_pop(State0, State1),
     indent_state_push(State1, defn_body, State2),
     update_state_column(State2, term_begin(Neckish, T, P), State3),
@@ -136,14 +142,12 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     indent_state_top(State0, defn_head),
-    In = term_end(_, S),
-    S \= toplevel, !,
-    % don't pop state here, because this is the head of a definition;
-    % we expect the next thing to be a neck (or guard or context)...
-    % should state change to be like "expect head" or something?
-    update_state_column(State0, In, State1),
-    pop_state_open_spaces(State1, _, State2),
-    correct_indentation(State2, InRest, OutRest).
+    In = term_end(_, S), S \= toplevel, !,
+    indent_state_pop(State0, State1),
+    indent_state_push(State1, defn_head_neck, State2),
+    update_state_column(State2, In, State3),
+    pop_state_open_spaces(State3, _, State4),
+    correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], Out) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_end', Name), !,
