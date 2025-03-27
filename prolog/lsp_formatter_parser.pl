@@ -14,12 +14,12 @@ Module for parsing Prolog source code, for subsequent formatting
 :- use_module(library(apply)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_source)).
-:- use_module(library(readutil), [read_line_to_codes/2]).
+:- use_module(library(readutil), [read_line_to_codes/2,
+                                  read_file_to_string/3]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reading in terms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- thread_local current_source/1.
 
 %! file_lines_start_end(+Path:text, -LineCharRange:list) is det.
 %
@@ -83,16 +83,21 @@ read_term_positions(Path, TermsWithPositions) :-
     arg(1, Acc, TermsWithPositionsRev),
     reverse(TermsWithPositionsRev, TermsWithPositions).
 
+:- thread_local current_source_string/1.
+
 %! reified_format_for_file(+Path:string, -Reified:list) is det.
 %
 %  Read the prolog source file at Path into a flattened list of terms
 %  indicating content, comments, and whitespace.
 reified_format_for_file(Path, Reified) :-
-    xref_source(Path),
-    assertz(current_source(Path)),
+    retractall(current_source_string(_)),
+    read_file_to_string(Path, FileString, []),
     read_term_positions(Path, TermsWithPos),
-    expand_term_positions(TermsWithPos, Reified0),
-    retractall(current_source(Path)),
+    setup_call_cleanup(
+        assertz(current_source_string(FileString)),
+        expand_term_positions(TermsWithPos, Reified0),
+        retractall(current_source_string(_))
+    ),
     sort(1, @=<, Reified0, Reified1),
     file_lines_start_end(Path, LinesStartEnd),
     InitState = _{last_line: 1, last_char: 0, line_bounds: LinesStartEnd},
@@ -128,13 +133,8 @@ emit_reified_(To, white(N)) =>
     maplist(=(0' ), Whites),
     format(To, "~s", [Whites]).
 emit_reified_(To, comma) => format(To, ",", []).
-emit_reified_(To, simple(var(T))) =>
-    format(To, "~w", [T]).
-emit_reified_(To, simple(T)), var(T) =>
-    % If T is still a var, it must be anonymous
-    format(To, "_", []).
 emit_reified_(To, simple(T)) =>
-    format(To, "~q", [T]).
+    format(To, "~s", [T]).
 emit_reified_(To, simple_quoted(T)) =>
     format(To, "'~q'", [T]).
 emit_reified_(To, string(T)), string(T) =>
@@ -228,12 +228,6 @@ expand_comment_positions(CommentPos-Comment, Expanded, ExpandedTail) :-
     stream_position_data(char_count, CommentEndPos, To),
     Expanded = [comment(From, To, Comment)|ExpandedTail].
 
-is_operator(Func, Type) :-
-    current_op(_, Type, Func), !.
-is_operator(Func, Type) :-
-    current_source(Path),
-    xref_op(Path, op(_, Type, Func)).
-
 expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
                          Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
@@ -245,6 +239,8 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
     % better way to tell if term is parenthesized?
+    % read functor from current_source_string/1 (as with simple below)
+    % and see if parens are there?
     (  From = FFrom, max_subterm_to(SubPoses, SubTermMax), To > SubTermMax
     -> ( Parens = true, FTo1 is FTo + 1 ) % add space for the parenthesis
     ;  ( Parens = false, FTo1 = FTo ) ),
@@ -257,13 +253,11 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
 expand_subterm_positions(Term, TermState, string_position(From, To), Expanded, Tail) =>
     Expanded = [string(From, To, Term)|Tail0],
     maybe_add_comma(TermState, To, Tail0, Tail).
-expand_subterm_positions(Term, TermState, From-To, Expanded, Tail) =>
-    FromToDiff is To - From,
-    emit_reified_(string(S), simple(Term)), string_length(S, LenDif),
-    ( FromToDiff \= LenDif
-    -> assertion(FromToDiff is LenDif + 2), % because the thing was quoted in source
-       Expanded = [simple_quoted(From, To, Term)|Tail0]
-    ; Expanded = [simple(From, To, Term)|Tail0] ),
+expand_subterm_positions(_Term, TermState, From-To, Expanded, Tail) =>
+    current_source_string(FileString),
+    Length is To - From,
+    sub_string(FileString, From, Length, _, SimpleString),
+    Expanded = [simple(From, To, SimpleString)|Tail0],
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
     assertion(is_listish(Term)),

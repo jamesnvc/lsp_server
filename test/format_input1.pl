@@ -122,4 +122,7 @@ send_message(Stream, Msg) :-
     format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]),
     flush_output(Stream).
 
+aoeuoaeuoeau(A) :-
+    A = [0'a, 0xa, 1e-3, 0.001].
+
 % end comment
