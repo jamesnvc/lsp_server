@@ -228,13 +228,13 @@ expand_comment_positions(CommentPos-Comment, Expanded, ExpandedTail) :-
     Expanded = [comment(From, To, Comment)|ExpandedTail].
 
 expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
-Expanded, ExTail), functor(Term, ',', _, _) =>
+                         Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
     Expanded = [comma(FFrom, FTo)|ExpandedTail0],
     functor(Term, _, Arity, _),
     expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
-Expanded, ExTail) =>
+                         Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
     % better way to tell if term is parenthesized?
@@ -282,7 +282,7 @@ expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPo
     Tail1 = [braces_end(To1, To)|Tail2],
     maybe_add_comma(TermState, To1, Tail2, Tail).
 expand_subterm_positions(Term, TermState, parentheses_term_position(From, To, ContentPos),
-Expanded, Tail) =>
+                         Expanded, Tail) =>
     ParenTo is From + 1,
     Expanded = [parens_begin(From, ParenTo)|Tail0],
     expand_subterm_positions(Term, false, ContentPos, Tail0, Tail1),
@@ -290,7 +290,7 @@ Expanded, Tail) =>
     Tail1 = [parens_end(To1, To)|Tail2],
     maybe_add_comma(TermState, To, Tail2, Tail).
 expand_subterm_positions(Term, TermState, dict_position(_From, To, TagFrom, TagTo, KeyValPos),
-Expanded, Tail) =>
+                         Expanded, Tail) =>
     is_dict(Term, Tag),
     DictBraceTo is TagTo + 1,
     Expanded = [dict_tag(TagFrom, TagTo, Tag), dict_begin(TagTo, DictBraceTo)|Tail0],
