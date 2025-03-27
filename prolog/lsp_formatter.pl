@@ -120,7 +120,9 @@ correct_indentation(State0, [In|InRest], Out) :-
     -> correct_indentation(State0, InRest, Out)
     ;  ( indent_state_pop(State0, State1),
          ( indent_state_top(State1, begin(_, _))
+         % state top = begin means prev line ended with an open paren
          -> indent_state_pop(State1, StateX),
+            % so pop that off and align as if one step "back"
             whitespace_indentation_for_state(StateX, PrevIndent),
             IncPrevIndent is PrevIndent + 4,
             indent_state_push(StateX, align(IncPrevIndent), State2)
@@ -200,7 +202,10 @@ whitespace_indentation_for_state(State, Indent) :-
                   ( member(X, Stack),
                     memberchk(X, [parens_begin, braces_begin, term_begin(_, _, _)]) ),
                   ParensCount),
-    Indent is ParensCount * 2 + #toplevel_indent.
+    ( indent_state_contains(State, defn_body)
+    -> MoreIndent = #toplevel_indent
+    ;  MoreIndent = 0 ),
+    Indent is ParensCount * 2 + MoreIndent.
 
 indent_state_top(State, Top) :-
     _{state: [Top|_]} :< State.
