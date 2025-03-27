@@ -14,8 +14,8 @@ Module for parsing Prolog source code, for subsequent formatting
 :- use_module(library(apply)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_source)).
-:- use_module(library(readutil), [read_line_to_codes/2,
-                                  read_file_to_string/3]).
+:- use_module(library(readutil), [ read_line_to_codes/2,
+                                   read_file_to_string/3 ]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Reading in terms
@@ -148,7 +148,6 @@ emit_reified_(To, term_begin(Func, _, Parens)) =>
     ;  Format = "~w" ),
     format(To, Format, [Func]).
 emit_reified_(To, term_end(Parens, TermState)) =>
-
     ( Parens = true
     -> MaybeClose = ")"
     ; MaybeClose = "" ),
@@ -229,13 +228,13 @@ expand_comment_positions(CommentPos-Comment, Expanded, ExpandedTail) :-
     Expanded = [comment(From, To, Comment)|ExpandedTail].
 
 expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
-                         Expanded, ExTail), functor(Term, ',', _, _) =>
+Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
     Expanded = [comma(FFrom, FTo)|ExpandedTail0],
     functor(Term, _, Arity, _),
     expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
-                         Expanded, ExTail) =>
+Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
     % better way to tell if term is parenthesized?
@@ -243,7 +242,7 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
     % and see if parens are there?
     (  From = FFrom, max_subterm_to(SubPoses, SubTermMax), To > SubTermMax
     -> ( Parens = true, FTo1 is FTo + 1 ) % add space for the parenthesis
-    ;  ( Parens = false, FTo1 = FTo ) ),
+    ;  ( Parens = false, FTo1 = FTo )  ),
     Expanded = [term_begin(FFrom, FTo1, Func, TermType, Parens)|ExpandedTail0],
     expand_term_subterms_positions(Parens, Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
@@ -272,7 +271,7 @@ expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail)
          Expanded2 = [list_tail(TailBarFrom, TailFrom)|Expanded3],
          list_tail(Term, Elms, ListTail),
          expand_subterm_positions(ListTail, false, HasTail, Expanded3, Expanded4),
-         Expanded4 = [list_end(To0, To)|Tail0] ) ),
+         Expanded4 = [list_end(To0, To)|Tail0] )  ),
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPos), Expanded, Tail) =>
     BraceTo is From + 1,
@@ -283,7 +282,7 @@ expand_subterm_positions(Term, TermState, brace_term_position(From, To, BracesPo
     Tail1 = [braces_end(To1, To)|Tail2],
     maybe_add_comma(TermState, To1, Tail2, Tail).
 expand_subterm_positions(Term, TermState, parentheses_term_position(From, To, ContentPos),
-                         Expanded, Tail) =>
+Expanded, Tail) =>
     ParenTo is From + 1,
     Expanded = [parens_begin(From, ParenTo)|Tail0],
     expand_subterm_positions(Term, false, ContentPos, Tail0, Tail1),
@@ -291,7 +290,7 @@ expand_subterm_positions(Term, TermState, parentheses_term_position(From, To, Co
     Tail1 = [parens_end(To1, To)|Tail2],
     maybe_add_comma(TermState, To, Tail2, Tail).
 expand_subterm_positions(Term, TermState, dict_position(_From, To, TagFrom, TagTo, KeyValPos),
-                        Expanded, Tail) =>
+Expanded, Tail) =>
     is_dict(Term, Tag),
     DictBraceTo is TagTo + 1,
     Expanded = [dict_tag(TagFrom, TagTo, Tag), dict_begin(TagTo, DictBraceTo)|Tail0],
@@ -337,7 +336,7 @@ expand_list_subterms_positions(_, [], Tail, Tail) :- !.
 expand_list_subterms_positions([Term|Terms], [Pos|Poses], Expanded, Tail) :-
     ( Poses = [_|_]
     -> TermState = subterm_item
-    ;  TermState = false),
+    ;  TermState = false ),
     expand_subterm_positions(Term, TermState, Pos, Expanded, Expanded1),
     expand_list_subterms_positions(Terms, Poses, Expanded1, Tail).
 
@@ -367,7 +366,7 @@ increment_stream_position(StartPos, RelPos, EndPos) :-
     -> LineCount = StartLineCount,
        LinePosition is StartLinePosition + RelLinePosition
     ; ( LineCount is StartLineCount + RelLineCount - 1,
-        LinePosition = RelLinePosition )),
+        LinePosition = RelLinePosition ) ),
     EndPos = '$stream_position_data'(CharCount, LineCount, LinePosition, ByteCount).
 
 update_state_position(State0, EndPos, State2) :-
