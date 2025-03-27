@@ -244,11 +244,10 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
                          Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
     functor(Term, Func, Arity, TermType),
-    % way to tell if term is parenthesized?
-    ( ( From \= FFrom ; ( is_operator(Func, OpType), memberchk(OpType, [fx, fy]) ) )
-    -> ( Parens = false, FTo1 = FTo )
-    %   add space for the parenthesis
-    ;  ( Parens = true, FTo1 is FTo + 1 ) ),
+    % better way to tell if term is parenthesized?
+    (  From = FFrom, max_subterm_to(SubPoses, SubTermMax), To > SubTermMax
+    -> ( Parens = true, FTo1 is FTo + 1 ) % add space for the parenthesis
+    ;  ( Parens = false, FTo1 = FTo ) ),
     Expanded = [term_begin(FFrom, FTo1, Func, TermType, Parens)|ExpandedTail0],
     expand_term_subterms_positions(Parens, Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
@@ -319,6 +318,12 @@ is_listish([_|_]).
 list_tail(Tail, [], Tail) :- !.
 list_tail([_|Rest], [_|PosRest], Tail) :-
     list_tail(Rest, PosRest, Tail).
+
+max_subterm_to(SubPoses, SubTermMaxTo) :-
+    aggregate_all(max(To),
+                  ( member(Pos, SubPoses),
+                    arg(2, Pos, To) ),
+                  SubTermMaxTo).
 
 expand_dict_kvs_positions(_, [], Tail, Tail) :- !.
 expand_dict_kvs_positions(Dict, [Pos|Poses], Expanded0, Tail) :-

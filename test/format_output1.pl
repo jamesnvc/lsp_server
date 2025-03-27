@@ -13,7 +13,7 @@ Module for formatting Prolog source code
 :- use_module(library(dcg/basics), [ whites//1 ]).
 
 :- dynamic foo/1.
-:- dynamic bar/2.
+:- dynamic(bar/2).
 
 stream_position_at_offset(LineCharMap, To, EndPos) :-
     A = [1, 2, 3, 4],
