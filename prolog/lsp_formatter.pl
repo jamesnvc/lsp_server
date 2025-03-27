@@ -108,8 +108,7 @@ correct_indentation(State0, [In|InRest], Out) :-
     Out = [white(Indent)|OutRest],
     update_state_column(State3, white(Indent), State4),
     correct_indentation(State4, [In|InRest], OutRest).
-correct_indentation(State0, [newline|InRest], [newline|Out]) :-
-    indent_state_contains(State0, defn_body), !,
+correct_indentation(State0, [newline|InRest], [newline|Out]) :- !,
     ( indent_state_top(State0, defn_body_indent)
     -> State1 = State0
     ; indent_state_push(State0, defn_body_indent, State1) ),
