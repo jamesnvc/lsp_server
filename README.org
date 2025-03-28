@@ -9,7 +9,7 @@ The code formatter can also be run stand-alone. After installing the ~lsp_server
 Only tested with SWI-Prolog, as it heavily uses its introspection facilities to do its stuff.
 It should work with any relatively-recent version of SWI-Prolog, but for best results (for "find references" in particular), use a version with ~xref_called/5~ (8.1.5 or newer; past commit [[https://github.com/SWI-Prolog/swipl-devel/commit/303f6430de5c9d7e225d8eb6fb8bb8b59e7c5f8f][303f6430de5c]]).
 
-Installable as a pack like ~?- pack_install(lsp_server).~
+Installable as a pack with ~swipl pack install lsp_server~ or ~?- pack_install(lsp_server).~ from a repl.
 
 As of version 2.5.0, running the server over a socket is now supported by passing in the commandline arguments ~port <port number>~ (instead of ~stdio~).
 
