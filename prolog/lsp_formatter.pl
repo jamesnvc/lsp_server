@@ -121,9 +121,8 @@ correct_indentation(State0, [In|InRest], Out) :-
     ( In = white(_)
     -> correct_indentation(State0, InRest, Out)
     ;  ( indent_state_pop(State0, State1),
-         debug(lsp(format), "INDENTING ~q ~q", [In, State0]),
          ( indent_state_top(State1, begin(_, _))
-         % state top = begin means prev line ended with an open paren
+           % state top = begin means prev line ended with an open paren
          -> indent_state_pop(State1, StateX),
             % so pop that off and align as if one step "back"
             whitespace_indentation_for_state(StateX, PrevIndent),
@@ -132,8 +131,8 @@ correct_indentation(State0, [In|InRest], Out) :-
          ; State2 = State1 ),
          update_alignment(State2, State3),
          ( ending_term(In)
-         % TODO: this needs some more special casing to act the way I'd like
-         % (that is, when the ending )/]/} is on its own line)
+           % TODO: this needs some more special casing to act the way I'd like
+           % (that is, when the ending )/]/} is on its own line)
          -> indent_state_pop(State3, State_),
             pop_state_open_spaces(State3, _, State4),
             push_state_open_spaces(State4, 0, State5),
@@ -142,7 +141,7 @@ correct_indentation(State0, [In|InRest], Out) :-
              State5 = State3 ) ),
          Out = [white(Indent)|OutRest],
          update_state_column(State5, white(Indent), State6),
-         correct_indentation(State6, [In|InRest], OutRest) )).
+         correct_indentation(State6, [In|InRest], OutRest) ) ).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_begin', Name), !,
