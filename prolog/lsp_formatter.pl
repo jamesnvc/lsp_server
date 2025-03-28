@@ -103,7 +103,8 @@ correct_indentation(State0, [In|InRest], Out) :-
     indent_state_pop(State0, State1),
     % if should align with the open paren, not the first term
     indent_state_pop(State1, State2),
-    indent_state_push(State2, boop, State3),
+    indent_state_top(State2, Top), % Copy the previous top
+    indent_state_push(State2, Top, State3),
     whitespace_indentation_for_state(State3, Indent),
     Out = [white(Indent)|OutRest],
     update_state_column(State3, white(Indent), State4),

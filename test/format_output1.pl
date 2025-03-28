@@ -132,4 +132,11 @@ expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo,
     functor(Term, _, Arity, _),
     expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 
+foo(A, B, C, D, E) :-
+    ( A = 1
+    -> B = 2
+    ; ( C = 3
+      -> D = 4
+      ; E = 5 ) ).
+
 % end comment
