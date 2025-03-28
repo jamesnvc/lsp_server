@@ -2,7 +2,9 @@
 
 Still a work-in-progress -- please open an issue if you have any issues or feature requests!.
 
-Currently supports showing documentation on hover, go to definition, go to callers, listing defined symbols in the file, and showing a limited number of diagnostics.
+Currently supports code formatting (✨new!✨), showing documentation on hover, go to definition, go to callers, listing defined symbols in the file, and showing a limited number of diagnostics.
+
+The code formatter can also be run stand-alone. After installing the ~lsp_server~ pack, you can run ~swipl formatter <file>~ at the command line.
 
 Only tested with SWI-Prolog, as it heavily uses its introspection facilities to do its stuff.
 It should work with any relatively-recent version of SWI-Prolog, but for best results (for "find references" in particular), use a version with ~xref_called/5~ (8.1.5 or newer; past commit [[https://github.com/SWI-Prolog/swipl-devel/commit/303f6430de5c9d7e225d8eb6fb8bb8b59e7c5f8f][303f6430de5c]]).
@@ -40,7 +42,7 @@ As of version 2.5.0, running the server over a socket is now supported by passin
                                              "-g" "use_module(library(lsp_server))."
                                              "-g" "lsp_server:main"
                                              "-t" "halt"
-                                             "--" "stdio"))
+                                             "--" "port" :autoport))
                                  eglot-server-programs))
 #+end_src
 
@@ -78,7 +80,23 @@ Put the following in ~coc-settings.json~ (which you can access by using the comm
 }
 #+end_src
 
-** Native LSP (for Neovim >= 0.5)
+** Native LSP (for Neovim >= 0.11)
+
+Put the following in ~$XDG_CONFIG_DIR/nvim/lsp/prolog.lua~:
+
+#+begin_src lua
+return {
+   cmd = { 'swipl',
+           '-g', 'use_module(library(lsp_server))',
+           '-g', 'lsp_server:main',
+           '-t', 'halt',
+           '--', 'stdio' },
+   root_markers = { '.git', },
+   filetypes = { 'prolog' },
+}
+#+end_src
+
+** Native LSP (for Neovim >= 0.5 < 0.11)
 
 Install the [[https://github.com/neovim/nvim-lspconfig][neovim/nvim-lspconfig]] package
 
@@ -120,9 +138,12 @@ EOF
 
 * VSCode
 
+Choose one from the list below:
+
   - download the latest ~.vsix~ file from the [[https://github.com/jamesnvc/lsp_server/releases][releases page]]
   - clone this repo and copy/symlink the ~vscode/~ directory to ~~/.vscode/extensions/~
   - clone and build the ~.vsix~ file yourself by the follwing steps:
-    1. install ~vsce~ (~npm install -g vsce~)
-    2. run ~vsce publish~ from the ~vscode/~ directory
-    3. add the resulting ~.vsix~ to VSCode.
+    1. ~cd /path/to/clone/vscode~
+    2. ~npm install~
+    3. ~npx vsce package~
+    4. add the resulting ~.vsix~ to VSCode by clicking the ~...~ at the top right of the "Extensions" panel then selecting ~Install from VSIX...~
