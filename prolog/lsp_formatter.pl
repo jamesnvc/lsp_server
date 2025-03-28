@@ -1,4 +1,5 @@
-:- module(lsp_formatter, [ file_format_edits/2 ]).
+:- module(lsp_formatter, [ file_format_edits/2,
+                           file_formatted/2 ]).
 
 /** <module> LSP Formatter
 
