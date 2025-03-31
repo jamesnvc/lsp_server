@@ -12,7 +12,8 @@ Module for parsing Prolog source code, for subsequent formatting
 */
 
 :- use_module(library(apply)).
-:- use_module(library(apply)).
+:- use_module(library(apply_macros)).
+:- use_module(library(clpfd)).
 :- use_module(library(prolog_source)).
 :- use_module(library(readutil), [ read_line_to_codes/2,
                                    read_file_to_string/3 ]).
@@ -394,8 +395,8 @@ sync_position_whitespace(State, TermPos, Expanded, ExpandedTail) :-
 
 file_offset_line_position(LineCharMap, CharCount, Line, LinePosition) :-
     member(line_start_end(Line, Start, End), LineCharMap),
-    between(Start, End, CharCount), !,
-    LinePosition is CharCount - Start.
+    between(Start, End, CharCount),
+    LinePosition #= CharCount - Start, !.
 
 stream_position_at_offset(LineCharMap, To, EndPos) :-
     CharCount = To,
