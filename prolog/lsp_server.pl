@@ -28,9 +28,9 @@ The main entry point for the Language Server implementation.
 :- use_module(lsp(lsp_changes), [handle_doc_changes/2]).
 :- use_module(lsp(lsp_completion), [completions_at/3]).
 :- use_module(lsp(lsp_colours), [file_colours/2,
-                            file_range_colours/4,
-                            token_types/1,
-                            token_modifiers/1]).
+                                 file_range_colours/4,
+                                 token_types/1,
+                                 token_modifiers/1]).
 :- use_module(lsp(lsp_formatter), [file_format_edits/2]).
 :- use_module(lsp(lsp_formatter_parser), []).
 
@@ -182,7 +182,7 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
 
 % messages (with a response)
 handle_msg("initialize", Msg,
-           _{id: Id, result: _{capabilities: ServerCapabilities} }) :-
+           _{id: Id, result: _{capabilities: ServerCapabilities}}) :-
     _{id: Id, params: Params} :< Msg, !,
     ( Params.rootUri \== null
     -> ( atom_concat('file://', RootPath, Params.rootUri),
@@ -200,7 +200,7 @@ handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
     Line1 is Line0 + 1,
     (  help_at_position(Path, Line1, Char0, Help)
     -> Response = _{contents: _{kind: plaintext, value: Help}}
-    ;  Response = null).
+    ;  Response = null  ).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
     atom_concat('file://', Path, Doc), !,
