@@ -376,10 +376,11 @@ find_occurrences_of_func(FuncName, Arity, [TermInfo|Rest], Matches, Tail) :-
     find_occurrences_of_func(FuncName, Arity, Rest, Tail0, Tail).
 
 find_occurrences_of_var(Var, TermInfo, Matches) :-
-    Var = var(_), % wrapped term; otherwise it's anonymous & matches nothing
+    Var = var(Name), ground(Name), % wrapped term; otherwise it's anonymous & matches nothing
     Term = TermInfo.term,
     Poses = TermInfo.subterm,
-    find_in_term_with_positions(=(Var), Term, Poses, Matches, []).
+    find_in_term_with_positions([X]>>( ground(X), X = Var ), Term, Poses,
+                                Matches, []).
 
 :- meta_predicate find_in_term_with_positions(1, +, +, -, -).
 
