@@ -2,7 +2,14 @@
 
 Still a work-in-progress -- please open an issue if you have any issues or feature requests!.
 
-Currently supports code formatting (✨new!✨), showing documentation on hover, go to definition, go to callers, listing defined symbols in the file, and showing a limited number of diagnostics.
+Currently supports:
+ - diagnostics (singleton variables, syntax errors) via xref
+ - find references/definitions
+ - documentation of predicates on hover
+ - auto-completion of predicates
+ - code formatting (✨new!✨)
+ - symbol highlighting (✨new!✨)
+ - variable renaming (✨new!✨)
 
 The code formatter can also be run stand-alone. After installing the ~lsp_server~ pack, you can run ~swipl formatter <file>~ at the command line.
 
