@@ -161,7 +161,7 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                       %% codeLensProvider: false,
                       documentFormattingProvider: true,
                       %% documentOnTypeFormattingProvider: false,
-                      renameProvider: false,
+                      renameProvider: true,
                       % documentLinkProvider: false,
                       % colorProvider: true,
                       foldingRangeProvider: false,
@@ -265,6 +265,23 @@ handle_msg("textDocument/documentHighlight", Msg, _{id: Id, result: Locations}) 
     succ(Line0, Line1),
     highlights_at_position(Path, line_char(Line1, Char0), Locations), !.
 handle_msg("textDocument/documentHighlight", Msg, _{id: Id, result: null}) :-
+    _{id: Id} :< Msg.
+handle_msg("textDocument/rename", Msg, _{id: Id, result: Result}) :-
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Uri},
+      position: _{line: Line0, character: Char0},
+      newName: NewName} :< Params,
+    atom_concat('file://', Path, Uri),
+    succ(Line0, Line1),
+    % highlights_at_position gives us the location & span of the variables
+    % using the 4-arity version instead of 3 so we can specify it should only match a variable
+    lsp_highlights:highlights_at_position(Path, line_char(Line1, Char0), var(_),
+                                          Positions),
+    maplist([P0, P1]>>put_dict(newText, P0, NewName, P1), Positions, Edits),
+    atom_string(AUri, Uri), % dict key must be an atom
+    dict_create(Changes, _, [AUri=Edits]),
+    Result = _{changes: Changes}.
+handle_msg("textDocument/rename", Msg, _{id: Id, error: "Nothing to be edited there"}) :-
     _{id: Id} :< Msg.
 handle_msg("textDocument/semanticTokens", Msg, Response) :-
     handle_msg("textDocument/semanticTokens/full", Msg, Response).

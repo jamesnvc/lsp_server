@@ -1,4 +1,5 @@
-:- module(lsp_highlights, [ highlights_at_position/3 ]).
+:- module(lsp_highlights, [ highlights_at_position/3,
+                            var_at_position/3 ]).
 
 :- include('path_add.pl').
 
@@ -7,7 +8,10 @@
 
 :- use_module(lsp(lsp_formatter_parser), []).
 
-highlights_at_position(Path, line_char(Line1, Char0), Highlights) :-
+highlights_at_position(Path, Position, Highlights) :-
+    highlights_at_position(Path, Position, _, Highlights).
+
+highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     % use the read predicate from formatter_parser + the offset <=> line number mapping
     lsp_formatter_parser:file_lines_start_end(Path, LineCharRange),
     lsp_formatter_parser:read_term_positions(Path, TermsWithPositions),
