@@ -143,6 +143,61 @@ require('lspconfig').prolog_lsp.setup{}
 EOF
 #+end_src
 
+* LazyVim
+
+Create the following file in ~~/.config/nvim/lua/plugins/lsp.lua~
+
+#+begin_src lua
+return {
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        prolog = {},
+      },
+      setup = {
+        prolog = function(_, opts)
+          local lspconfig = require("lspconfig")
+          local configs = require("lspconfig.configs")
+          local util = require("lspconfig.util")
+
+          local root_files = { ".git", "pack.pl" }
+
+          if not configs.prolog then
+            configs.prolog = {
+              default_config = {
+                cmd = {
+                  "swipl",
+                  "-g",
+                  "use_module(library(lsp_server)).",
+                  "-g",
+                  "lsp_server:main",
+                  "-t",
+                  "halt",
+                  "--",
+                  "stdio",
+                },
+                filetypes = { "prolog" },
+                single_file_support = true,
+                root_dir = util.root_pattern(unpack(root_files)),
+                settings = {},
+              },
+              commands = {},
+              docs = {
+                description = [[
+              Prolog LSP server
+              ]],
+              },
+            }
+          end
+          lspconfig.prolog.setup(opts)
+        end,
+      },
+    },
+  },
+}
+#+end_src
+
 * VSCode
 
 Choose one from the list below:
