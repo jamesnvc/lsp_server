@@ -63,7 +63,6 @@ commas_exactly_one_space([Other|Rest], Out) =>
 
 #define(toplevel_indent, 4).
 
-% TODO: alignment special-case rule for ->;
 correct_indentation(_, [], []) :- !.
 correct_indentation(State0,
                     [term_begin(Func, Type, Parens)|InRest],
