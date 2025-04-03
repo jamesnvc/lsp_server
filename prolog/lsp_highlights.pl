@@ -89,7 +89,7 @@ find_in_term_dict(Needle, Term, [Pos|Poses], Matches, Tail) :-
     find_in_term_dict(Needle, Term, Poses, Tail0, Tail).
 
 find_in_term_list(_, _, [], none, Tail, Tail) :- !.
-find_in_term_list(Needle, TailElt, [], TailPos, Matches, Tail) :-
+find_in_term_list(Needle, TailElt, [], TailPos, Matches, Tail) :- !,
     find_in_term_with_positions(Needle, TailElt, TailPos, Matches, Tail).
 find_in_term_list(Needle, [X|Xs], [Pos|Poses], TailPos, Matches, Tail) :-
     find_in_term_with_positions(Needle, X, Pos, Matches, Tail0),
