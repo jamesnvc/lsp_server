@@ -53,7 +53,7 @@ file_lines_start_end(Path, LineCharRange) :-
 %  prolog_read_source_term/4, to a list of dictionaries.
 %  Each dictionary has the following keys:
 %    * term
-%      The term read in, with variables replace with the term var(VariableName).
+%      The term read in, with variables replace with the term '$var'(VariableName).
 %    * pos
 %      The position of the term (see [[prolog_read_source_term/4]]).
 %    * subterm
@@ -74,7 +74,7 @@ read_term_positions(Path, TermsWithPositions) :-
                                                       variable_names(VarNames),
                                                       comments(Comments),
                                                       syntax_errors(error)]),
-          maplist([Name=Var]>>( Var = var(Name) ), VarNames),
+          maplist([Name=Var]>>( Var = '$var'(Name) ), VarNames),
           arg(1, Acc, Lst),
           nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
                                varible_names: VarNames, comments: Comments}|Lst]),
@@ -172,7 +172,7 @@ emit_reified_(To, parens_begin) =>
     format(To, "(", []).
 emit_reified_(To, parens_end) =>
     format(To, ")", []).
-emit_reified_(To, dict_tag(var(Tag))) =>
+emit_reified_(To, dict_tag('$var'(Tag))) =>
     format(To, "~w", [Tag]).
 emit_reified_(To, dict_tag(Tag)), var(Tag) =>
     % if Tag is still a var, it must be anonymous

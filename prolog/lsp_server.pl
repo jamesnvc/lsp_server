@@ -275,7 +275,7 @@ handle_msg("textDocument/rename", Msg, _{id: Id, result: Result}) :-
     succ(Line0, Line1),
     % highlights_at_position gives us the location & span of the variables
     % using the 4-arity version instead of 3 so we can specify it should only match a variable
-    lsp_highlights:highlights_at_position(Path, line_char(Line1, Char0), var(_),
+    lsp_highlights:highlights_at_position(Path, line_char(Line1, Char0), '$var'(_),
                                           Positions),
     maplist([P0, P1]>>put_dict(newText, P0, NewName, P1), Positions, Edits),
     atom_string(AUri, Uri), % dict key must be an atom

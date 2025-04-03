@@ -25,7 +25,7 @@ highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     between(TermFrom, TermTo, Offset), !,
     subterm_leaf_position(TermInfo.term, Offset, SubTermPoses, Leaf),
     % if it's the functor of a term, find all occurrences in the file
-    ( Leaf = var(_)
+    ( Leaf = '$var'(_)
     -> find_occurrences_of_var(Leaf, TermInfo, Matches)
     ; functor(Leaf, FuncName, Arity),
       find_occurrences_of_func(FuncName, Arity, TermsWithPositions, Matches)
@@ -57,7 +57,7 @@ find_occurrences_of_func(FuncName, Arity, [TermInfo|Rest], Matches, Tail) :-
     find_occurrences_of_func(FuncName, Arity, Rest, Tail0, Tail).
 
 find_occurrences_of_var(Var, TermInfo, Matches) :-
-    Var = var(Name), ground(Name), % wrapped term; otherwise it's anonymous & matches nothing
+    Var = '$var'(Name), ground(Name), % wrapped term; otherwise it's anonymous & matches nothing
     Term = TermInfo.term,
     Poses = TermInfo.subterm,
     find_in_term_with_positions({Var}/[X]>>( ground(X), X = Var ), Term, Poses,
