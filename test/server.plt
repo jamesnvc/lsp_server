@@ -1,7 +1,10 @@
 :- module(server_t, []).
 
 :- use_module(library(plunit)).
-:- use_module(server).
+
+:- include('../prolog/path_add.pl').
+:- use_module(lsp(lsp_parser)).
+
 :- begin_tests(parsing).
 
 test('Parsing content') :-
@@ -11,7 +14,7 @@ test('Parsing content') :-
   "params": {
     "thing": 1
   }
-}`, phrase(server:lsp_request(Req), S),
+}`, phrase(lsp_request(Req), S),
  _{headers: _,
    body: _{jsonrpc: "2.0",
            id: 1,
