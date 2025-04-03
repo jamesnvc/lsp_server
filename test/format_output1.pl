@@ -128,8 +128,8 @@ aoeuoaeuoeau(A) :-
 expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo, SubPoses),
                          Expanded, ExTail), functor(Term, ',', _, _) =>
     % special-case comma terms to be reified as commas
-    Expanded = [comma(FFrom, FTo)|ExpandedTail0],
-    functor(Term, _, Arity, _),
+    Expanded = [comma(FFrom, FTo)|ExpandedTail0], % aligned
+    functor(Term, _, Arity, _),                   % comments
     expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 
 foo(A, B, C, D, E) :-

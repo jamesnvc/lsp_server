@@ -51,7 +51,7 @@ collapse_whitespace([In|InRest], [In|OutRest]) :-
 commas_exactly_one_space([], Out) => Out = [].
 commas_exactly_one_space([white(_), comma|InRest], Out) =>
     commas_exactly_one_space([comma|InRest], Out).
-commas_exactly_one_space([comma, white(_)|InRest], Out) =>
+commas_exactly_one_space([comma, white(_)|InRest], Out), InRest \= [comment(_)|_] =>
     Out = [comma, white(1)|OutRest],
     commas_exactly_one_space(InRest, OutRest).
 commas_exactly_one_space([comma, Next|InRest], Out), Next \= white(_), Next \= newline =>
