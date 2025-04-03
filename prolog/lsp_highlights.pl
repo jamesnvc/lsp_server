@@ -52,7 +52,7 @@ find_occurrences_of_func(FuncName, Arity, TermInfos, Matches) :-
 
 find_occurrences_of_func(_, _, [], Tail, Tail).
 find_occurrences_of_func(FuncName, Arity, [TermInfo|Rest], Matches, Tail) :-
-    find_in_term_with_positions([X]>>( functor(X, FuncName, Arity) ),
+    find_in_term_with_positions({FuncName, Arity}/[X]>>( functor(X, FuncName, Arity) ),
                                 TermInfo.term, TermInfo.subterm, Matches, Tail0),
     find_occurrences_of_func(FuncName, Arity, Rest, Tail0, Tail).
 
@@ -60,7 +60,7 @@ find_occurrences_of_var(Var, TermInfo, Matches) :-
     Var = var(Name), ground(Name), % wrapped term; otherwise it's anonymous & matches nothing
     Term = TermInfo.term,
     Poses = TermInfo.subterm,
-    find_in_term_with_positions([X]>>( ground(X), X = Var ), Term, Poses,
+    find_in_term_with_positions({Var}/[X]>>( ground(X), X = Var ), Term, Poses,
                                 Matches, []).
 
 :- meta_predicate find_in_term_with_positions(1, +, +, -, -).
