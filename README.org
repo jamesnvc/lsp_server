@@ -145,7 +145,7 @@ EOF
 
 * LazyVim
 
-Create the following file in ~~/.config/nvim/lua/plugins/lsp.lua~
+Create the following file in ~$XDG_CONFIG_DIR/nvim/lua/plugins/lsp.lua~
 
 #+begin_src lua
 return {
