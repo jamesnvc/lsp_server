@@ -23,9 +23,10 @@ highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     arg(2, SubTermPoses, TermTo),
     between(TermFrom, TermTo, Offset), !,
     subterm_leaf_position(TermInfo.term, Offset, SubTermPoses, Leaf),
-    % if it's the functor of a term, find all occurrences in the file
     ( Leaf = '$var'(_)
+    % if it's a variable, only look inside the containing term
     -> find_occurrences_of_var(Leaf, TermInfo, Matches)
+    % if it's the functor of a term, find all occurrences in the file
     ; functor(Leaf, FuncName, Arity),
       find_occurrences_of_func(FuncName, Arity, TermsWithPositions, Matches)
     ),
@@ -114,12 +115,18 @@ subterm_leaf_position(Term, Offset, term_position(From, To, _, _, Subterms), Lea
     nth1(Arg, Subterms, SubtermPos),
     subterm_leaf_position(Subterm, Offset, SubtermPos, Leaf), !.
 subterm_leaf_position(Term, Offset, list_position(From, To, Elms, _), Leaf) :-
-    between(From, To, Offset), !,
+    between(From, To, Offset),
     length(Elms, NElms),
     between(1, NElms, Idx),
     nth1(Idx, Term, Elm),
     nth1(Idx, Elms, ElmPos),
     subterm_leaf_position(Elm, Offset, ElmPos, Leaf), !.
+subterm_leaf_position(Term, Offset, list_position(From, To, Elms, TailPos), Leaf) :-
+    between(From, To, Offset), TailPos \= none, !,
+    length(Elms, NElms),
+    length(Head, NElms),
+    append(Head, Tail, Term),
+    subterm_leaf_position(Tail, Offset, TailPos, Leaf), !.
 subterm_leaf_position(Term, Offset, brace_term_position(From, To, BracesPos), Leaf) :-
     between(From, To, Offset), !,
     Term = {Term0},
