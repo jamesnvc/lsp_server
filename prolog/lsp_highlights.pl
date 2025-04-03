@@ -51,7 +51,8 @@ find_occurrences_of_func(FuncName, Arity, TermInfos, Matches) :-
 
 find_occurrences_of_func(_, _, [], Tail, Tail).
 find_occurrences_of_func(FuncName, Arity, [TermInfo|Rest], Matches, Tail) :-
-    find_in_term_with_positions({FuncName, Arity}/[X]>>( functor(X, FuncName, Arity) ),
+    find_in_term_with_positions({FuncName, Arity}/[X]>>( nonvar(X),
+                                                         functor(X, FuncName, Arity) ),
                                 TermInfo.term, TermInfo.subterm, Matches, Tail0),
     find_occurrences_of_func(FuncName, Arity, Rest, Tail0, Tail).
 
