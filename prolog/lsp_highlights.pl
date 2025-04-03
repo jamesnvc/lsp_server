@@ -1,5 +1,4 @@
-:- module(lsp_highlights, [ highlights_at_position/3,
-                            var_at_position/3 ]).
+:- module(lsp_highlights, [ highlights_at_position/3 ]).
 
 :- include('path_add.pl').
 
