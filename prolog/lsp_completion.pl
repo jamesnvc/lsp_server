@@ -11,9 +11,9 @@ Uses =lsp_changes= in order to see the state of the buffer being edited.
 @author James Cash
 */
 
-:- use_module(library(apply), [maplist/3]).
-:- use_module(library(lists), [numlist/3]).
-:- use_module(library(prolog_xref), [xref_defined/3, xref_source/2]).
+:- use_module(library(apply), [ maplist/3 ]).
+:- use_module(library(lists), [ numlist/3 ]).
+:- use_module(library(prolog_xref), [ xref_defined/3, xref_source/2 ]).
 :- use_module(library(yall)).
 
 :- include('path_add.pl').
@@ -60,7 +60,7 @@ completions_at(File, Position, Completions) :-
           format(string(Label), "~w/~w", [Name, Arity]),
           Result = _{label: Label,
                      insertText: Func,
-                     insertTextFormat: 2}),
+                     insertTextFormat: 2} ),
         Completions,
         CompletionsTail
     ),
@@ -75,7 +75,7 @@ completions_at(File, Position, Completions) :-
           format(string(Label), "~w/~w", [Name, Arity]),
           Result = _{label: Label,
                      insertText: Func,
-                     insertTextFormat: 2}),
+                     insertTextFormat: 2} ),
         CompletionsTail
     ).
 
@@ -92,11 +92,11 @@ predicate_arguments(File, Pred, ArgsStr) :-
     length(Args, Length),
     numlist(1, Length, Nums),
     maplist([Arg, Num, S]>>format(string(S), "${~w:~w}", [Num, Arg]),
-           Args, Nums, Args1),
+            Args, Nums, Args1),
     atomic_list_concat(Args1, ', ', ArgsStr).
 
 args_str(Arity, Str) :-
     numlist(1, Arity, Args),
     maplist([A, S]>>format(string(S), "${~w:_}", [A]),
-           Args, ArgStrs),
+            Args, ArgStrs),
     atomic_list_concat(ArgStrs, ', ', Str).
