@@ -16,7 +16,7 @@ test('Highlighting var in file location 1',
                             _{range:_{end:_{character:60, line:34},
                                       start:_{character:51, line:34}}}]) ]) :-
     module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(34, 51), Highlights).
 
 
@@ -26,7 +26,7 @@ test('Highlighting var in file location 2',
                             _{range:_{end:_{character:11, line:63},
                                       start:_{character:10, line:63}}}]) ]) :-
     module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(57, 4), Highlights).
 
 test('Highlighting var in file location 3 - list tail',
@@ -35,7 +35,7 @@ test('Highlighting var in file location 3 - list tail',
                             _{range:_{end:_{character:81, line:132},
                                       start:_{character:68, line:132}}}]) ]) :-
     module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(131, 45), Highlights).
 
 test('Highlighting var in file location 4 - list element',
@@ -44,7 +44,7 @@ test('Highlighting var in file location 4 - list element',
                             _{range:_{end:_{character:66, line:132},
                                       start:_{character:58, line:132}}}]) ]) :-
     module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(133, 58), Highlights).
 
 test('Highlighting term in file',
@@ -53,7 +53,7 @@ test('Highlighting term in file',
                             _{range:_{end:_{character:29, line:105},
                                       start:_{character:20, line:105}}}]) ]) :-
     module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(25, 5), Highlights).
 
 
