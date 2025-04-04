@@ -119,35 +119,14 @@ correct_indentation(State0, [In|InRest], Out) :-
     indent_state_top(State0, defn_body_indent), !,
     ( In = white(_)
     -> correct_indentation(State0, InRest, Out)
-    ;  ( indent_state_pop(State0, State1),
-         ( indent_state_top(State1, begin(_, _))
-           % state top = begin means prev line ended with an open paren
-         -> indent_state_pop(State1, StateX),
-            % so pop that off and align as if one step "back"
-            whitespace_indentation_for_state(StateX, PrevIndent),
-            IncPrevIndent is PrevIndent + 4,
-            indent_state_push(StateX, align(IncPrevIndent), State2)
-         ; State2 = State1 ),
-         update_alignment(State2, State3),
-         ( ending_term(In)
-           % TODO: this needs some more special casing to act the way I'd like
-           % (that is, when the ending )/]/} is on its own line)
-         -> indent_state_pop(State3, State_),
-            pop_state_open_spaces(State3, _, State4),
-            push_state_open_spaces(State4, 0, State5),
-            whitespace_indentation_for_state(State_, Indent)
-         ; ( whitespace_indentation_for_state(State3, Indent),
-             State5 = State3 ) ),
-         Out = [white(Indent)|OutRest],
-         update_state_column(State5, white(Indent), State6),
-         correct_indentation(State6, [In|InRest], OutRest) ) ).
+    ;  insert_whitespace_to_indent(State0, [In|InRest], Out) ).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     functor(In, Name, _Arity, _Type),
     atom_concat(_, '_begin', Name), !,
     % if we've just begun something...
     update_alignment(State0, State1),
     update_state_column(State1, In, State2),
-    indent_state_push(State2, begin(State2.column, In), State3),
+    indent_state_push(State2, begin(State2.column, State1.column), State3),
     push_state_open_spaces(State3, InRest, State4),
     correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
@@ -182,15 +161,63 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :- !,
     update_state_column(State1, In, State2),
     correct_indentation(State2, InRest, OutRest).
 
+insert_whitespace_to_indent(State0, [In|InRest], Out) :-
+    indent_state_pop(State0, State1),
+    ( indent_state_top(State1, begin(_, BeganAt))
+      % state top = begin means prev line ended with an open paren
+    -> % so pop that off and align as if one step "back"
+       indent_state_pop(State1, StateX),
+       whitespace_indentation_for_state(StateX, PrevIndent),
+       IncPrevIndent is PrevIndent + 4,
+       indent_state_push(StateX, align(IncPrevIndent, BeganAt), State2)
+    ; State2 = State1 ),
+    update_alignment(State2, State3),
+    ( ending_term(In)
+    -> indent_for_end_term(State3, In, State4, Indent)
+    ;  whitespace_indentation_for_state(State3, Indent),
+       State4 = State3 ),
+    Out = [white(Indent)|OutRest],
+    update_state_column(State4, white(Indent), State5),
+    correct_indentation(State5, [In|InRest], OutRest).
+
+indent_for_end_term(State0, In, State, Indent) :-
+    % for a paren ending a term, align a level up
+    In = term_end(true, _), !,
+    indent_state_pop(State0, State_),
+    pop_state_open_spaces(State0, _, State1),
+    push_state_open_spaces(State1, 0, State),
+    whitespace_indentation_for_state(State_, Indent).
+indent_for_end_term(State0, In, State, Indent) :-
+    % for a brace ending a dict, align two levels up level up
+    In = dict_end, !,
+    indent_state_pop(State0, State_),
+    indent_state_pop(State_, State__),
+    pop_state_open_spaces(State0, _, State1),
+    push_state_open_spaces(State1, 0, State),
+    whitespace_indentation_for_state(State__, Indent).
+indent_for_end_term(State0, _In, State, Indent) :-
+    % for another ending term, align to the open
+    % if we have alignment infomation.
+    indent_state_top(State0, Top),
+    Top = align(_, Indent), !,
+    pop_state_open_spaces(State0, _, State1),
+    push_state_open_spaces(State1, 0, State).
+indent_for_end_term(State0, _In, State, Indent) :-
+    % otherwise, at top-level, just pop state.
+    indent_state_pop(State0, State_),
+    pop_state_open_spaces(State0, _, State1),
+    push_state_open_spaces(State1, 0, State),
+    whitespace_indentation_for_state(State_, Indent).
+
 ending_term(Term) :-
     functor(Term, Name, _, _),
     atom_concat(_, '_end', Name).
 
 update_alignment(State0, State2) :-
-    indent_state_top(State0, begin(Col, _)), !,
+    indent_state_top(State0, begin(Col, BeganAt)), !,
     indent_state_pop(State0, State1),
     AlignCol is max(Col, State1.column),
-    indent_state_push(State1, align(AlignCol), State2).
+    indent_state_push(State1, align(AlignCol, BeganAt), State2).
 update_alignment(State0, State2) :-
     indent_state_top(State0, defn_head(Col, false)), !,
     indent_state_pop(State0, State1),
@@ -199,7 +226,7 @@ update_alignment(State0, State2) :-
 update_alignment(State, State).
 
 whitespace_indentation_for_state(State, Indent) :-
-    indent_state_top(State, align(Indent)), !.
+    indent_state_top(State, align(Indent, _)), !.
 whitespace_indentation_for_state(State, Indent) :-
     indent_state_top(State, defn_head(Indent, _)), !.
 whitespace_indentation_for_state(State, Indent) :-

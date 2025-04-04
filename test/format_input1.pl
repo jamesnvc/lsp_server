@@ -30,7 +30,8 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
     findall(X,
             ( member(X, A),
       0 is X mod 2 ),
-            _),
+            _
+           ),
    file_offset_line_position(LineCharMap, To, LineCount, LinePosition),
        EndPos = '$stream_position_data'(CharCount, LineCount, LinePosition, ByteCount).
 
@@ -138,5 +139,16 @@ foo(A, B, C, D, E) :-
     ; ( C = 3
       -> D = 4
       ; E = 5 ) ).
+
+testing_dict_formatting(A) :-
+    findall(B,
+            ( Foo = _{x: 1,
+                     y: 2,
+                     c: 3
+                     },
+              Bar = Foo.y,
+              between(0, Bar, B)
+),
+           A).
 
 % end comment

@@ -25,12 +25,13 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
     memberchk(Neckish, [':-', '=>', '-->']),
     findall(X, ( member(X, A),
                  0 is X mod 2
-            ),
+               ),
             _),
     findall(X,
             ( member(X, A),
               0 is X mod 2 ),
-            _),
+            _
+    ),
     file_offset_line_position(LineCharMap, To, LineCount, LinePosition),
     EndPos = '$stream_position_data'(CharCount, LineCount, LinePosition, ByteCount).
 
@@ -56,7 +57,7 @@ weird_quasi(Quasi) :-
 burf :-
     A = _{
             a: 1, b: [x, "y", 'Z'|Tail], 'C': x{x: 1, b: 2}
-        },
+    },
     write([1, 2|_]), write([1, 2|[x]]),
     B = foo{q: q},
     C = Something{x: y},
@@ -76,20 +77,20 @@ foo(A) :-
                 member(X, A),
 
                 0 is X mod 2
-            ),
+               ),
             _).
 
 bar(A) :-
     findall(X, (
                 member(X, A),
                 0 is X mod 2
-            ),
+               ),
             _).
 
 bas(A) :-
     findall(X, ( member(X, A),
                  0 is X mod 2
-            ),
+               ),
             _).
 
 baz(A) :-
@@ -138,5 +139,16 @@ foo(A, B, C, D, E) :-
     ; ( C = 3
       -> D = 4
       ; E = 5 ) ).
+
+testing_dict_formatting(A) :-
+    findall(B,
+            ( Foo = _{x: 1,
+                      y: 2,
+                      c: 3
+              },
+              Bar = Foo.y,
+              between(0, Bar, B)
+            ),
+            A).
 
 % end comment
