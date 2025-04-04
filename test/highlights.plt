@@ -56,6 +56,29 @@ test('Highlighting term in file',
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(25, 5), Highlights).
 
+%%%
 
+test('Can ask for the type of leaf to find',
+     [ true(TheVar-Highlights =@=
+                'LineCount'-[_{range:_{end:_{character:55, line:33},
+                                       start:_{character:46, line:33}}},
+                             _{range:_{end:_{character:60, line:34},
+                                       start:_{character:51, line:34}}}]) ]) :-
+    module_property(formatter_t, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
+    lsp_highlights:highlights_at_position(InputFile, line_char(34, 51),
+                                          '$var'(TheVar), Highlights).
+
+test('Highlighting asking for a variable on a term should fail',
+     [ fail ]) :-
+    module_property(formatter_t, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
+    lsp_highlights:highlights_at_position(InputFile, line_char(25, 5), '$var'(_), _).
+
+test('Highlighting asking for a variable on a comment should fail',
+     [ fail ]) :-
+    module_property(formatter_t, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
+    lsp_highlights:highlights_at_position(InputFile, line_char(130, 14), '$var'(_), _).
 
 :- end_tests(highlights).
