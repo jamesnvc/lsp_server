@@ -18,8 +18,8 @@ Uses =lsp_changes= in order to see the state of the buffer being edited.
 
 :- include('path_add.pl').
 
-:- use_module(lsp(lsp_utils), [linechar_offset/3]).
-:- use_module(lsp(lsp_changes), [doc_text_fallback/2]).
+:- use_module(lsp(lsp_utils), [ linechar_offset/3 ]).
+:- use_module(lsp(lsp_changes), [ doc_text_fallback/2 ]).
 
 part_of_prefix(Code) :- code_type(Code, prolog_var_start).
 part_of_prefix(Code) :- code_type(Code, prolog_atom_start).
