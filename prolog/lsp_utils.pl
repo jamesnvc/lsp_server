@@ -25,6 +25,7 @@ source and stuff.
 :- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
 :- use_module(library(sgml), [load_html/3]).
+:- use_module(library(yall)).
 
 :- if(current_predicate(xref_called/5)).
 %! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.

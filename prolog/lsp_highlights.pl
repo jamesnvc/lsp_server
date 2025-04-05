@@ -4,6 +4,7 @@
 
 :- use_module(library(apply), [maplist/2]).
 :- use_module(library(apply_macros)).
+:- use_module(library(yall)).
 
 :- use_module(lsp(lsp_formatter_parser), []).
 
