@@ -15,6 +15,7 @@ Module for parsing Prolog source code, for subsequent formatting
 :- use_module(library(apply_macros)).
 :- use_module(library(clpfd)).
 :- use_module(library(prolog_source)).
+:- use_module(library(rbtrees)).
 :- use_module(library(readutil), [ read_line_to_codes/2,
                                    read_file_to_string/3 ]).
 :- use_module(library(yall)).
@@ -39,14 +40,17 @@ file_lines_start_end(Path, LineCharRange) :-
           arg(2, Acc, line(LastLine, LastLineStart)),
           arg(1, Acc, Data),
           LastLineEnd is NewLineStart - 1,
-          nb_setarg(1, Acc, [line_start_end(LastLine, LastLineStart, LastLineEnd)|Data]),
+          nb_setarg(1, Acc, [(LastLineStart-LastLineEnd)-LastLine|Data]),
           NextLine is LastLine + 1,
           nb_setarg(2, Acc, line(NextLine, NewLineStart)),
           Line == end_of_file, !
         ),
         close(Stream)),
-    arg(1, Acc, RangesReversed),
-    reverse(RangesReversed, LineCharRange).
+    arg(1, Acc, Ranges),
+    list_to_rbtree(Ranges, RangeToLine),
+    maplist([Range-Line, Line-Range]>>true, Ranges, InvRanges),
+    list_to_rbtree(InvRanges, LineToRange),
+    LineCharRange = RangeToLine-LineToRange.
 
 %! read_term_positions(+Path:text, -TermsWithPositions:list) is det.
 %
@@ -394,11 +398,41 @@ sync_position_whitespace(State, TermPos, Expanded, ExpandedTail) :-
     -> Expanded0 = [white(Whitespace)|ExpandedTail]
     ;  Expanded0 = ExpandedTail ).
 
-file_offset_line_position(LineCharMap, CharCount, Line, LinePosition) :-
-    member(line_start_end(Line, Start, End), LineCharMap),
-    between(Start, End, CharCount),
-    LinePosition #= CharCount - Start, !.
+file_offset_line_position(LineCharMap-_, CharCount, Line, LinePosition) :-
+    ground(CharCount), !,
+    rb_lookup_range(CharCount, Start-_End, Line, LineCharMap),
+    LinePosition #= CharCount - Start.
+file_offset_line_position(_-LineCharMap, CharCount, Line, LinePosition) :-
+    rb_lookup(Line, Start-_End, LineCharMap),
+    CharCount #= Start + LinePosition.
 
+rb_lookup_range(Key, KeyRange, Value, t(_, Tree)) =>
+    rb_lookup_range_(Key, KeyRange, Value, Tree).
+
+rb_lookup_range_(_Key, _KeyRange, _Value, black('', _, _, '')) :- !, fail.
+rb_lookup_range_(Key, KeyRange, Value, Tree) :-
+    arg(2, Tree, Start-End),
+    compare(CmpS, Key, Start),
+    compare(CmpE, Key, End),
+    rb_lookup_range_(t(CmpS, CmpE), Key, Start-End, KeyRange, Value, Tree).
+
+rb_lookup_range_(t(>, <), _, Start-End, KeyRange, Value, Tree) =>
+    arg(3, Tree, Value),
+    KeyRange = Start-End.
+rb_lookup_range_(t(=, _), _, Start-End, KeyRange, Value, Tree) =>
+    arg(3, Tree, Value),
+    KeyRange = Start-End.
+rb_lookup_range_(t(_, =), _, Start-End, KeyRange, Value, Tree) =>
+    arg(3, Tree, Value),
+    KeyRange = Start-End.
+rb_lookup_range_(t(<, _), Key, _, KeyRange, Value, Tree) =>
+    arg(1, Tree, NTree),
+    rb_lookup_range_(Key, KeyRange, Value, NTree).
+rb_lookup_range_(t(_, >), Key, _, KeyRange, Value, Tree) =>
+    arg(4, Tree, NTree),
+    rb_lookup_range_(Key, KeyRange, Value, NTree).
+
+%! stream_position_at_offset(+LineCharMap:rbtree, +Offset:Int, -Pos) is det.
 stream_position_at_offset(LineCharMap, To, EndPos) :-
     CharCount = To,
     ByteCount = To, % need to check for multibyte...
