@@ -7,4 +7,4 @@ for f in test/*.plt; do
     load_test_files+=( "-l" )
     load_test_files+=( "${f}" )
 done
-exec swipl ${load_test_files[@]} -g plunit:run_tests -t halt
+exec swipl --quiet ${load_test_files[@]} -g plunit:run_tests -g nl -t halt
