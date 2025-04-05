@@ -160,6 +160,7 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                       codeActionProvider: false,
                       %% codeLensProvider: false,
                       documentFormattingProvider: true,
+                      documentRangeFormattingProvider: true,
                       %% documentOnTypeFormattingProvider: false,
                       renameProvider: true,
                       % documentLinkProvider: false,
@@ -257,6 +258,12 @@ handle_msg("textDocument/formatting", Msg, _{id: Id, result: Edits}) :-
     _{textDocument: _{uri: Uri}} :< Params,
     atom_concat('file://', Path, Uri),
     file_format_edits(Path, Edits).
+handle_msg("textDocument/rangeFormatting", Msg, _{id: Id, result: Edits}) :-
+    _{id: Id, params: Params} :< Msg,
+    _{textDocument: _{uri: Uri}, range: Range} :< Params,
+    atom_concat('file://', Path, Uri),
+    file_format_edits(Path, Edits0),
+    include(edit_in_range(Range), Edits0, Edits).
 handle_msg("textDocument/documentHighlight", Msg, _{id: Id, result: Locations}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri},
@@ -346,3 +353,16 @@ check_errors_resp(FileUri, _{method: "textDocument/publishDiagnostics",
     check_errors(Path, Errors).
 check_errors_resp(_, false) :-
     debug(server, "Failed checking errors", []).
+
+edit_in_range(Range, Edit) :-
+    _{start: _{line: RStartLine, character: RStartChar},
+      end: _{line: REndLine, character: REndChar}} :< Range,
+    _{start: _{line: EStartLine, character: EStartChar},
+      end: _{line: EEndLine, character: EEndChar}} :< Edit.range,
+    RStartLine =< EStartLine, REndLine >= EEndLine,
+    ( RStartLine == EStartLine
+    -> RStartChar =< EStartChar
+    % do we care to restrict the *end* of the edit?
+    ; ( REndLine == EEndLine
+      -> REndChar >= EEndChar
+      ; true ) ).
