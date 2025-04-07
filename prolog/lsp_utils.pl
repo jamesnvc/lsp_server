@@ -27,6 +27,13 @@ source and stuff.
 :- use_module(library(sgml), [load_html/3]).
 :- use_module(library(yall)).
 
+:- include('path_add.pl').
+
+:- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
+                                         read_term_positions/2,
+                                         file_offset_line_position/4 ]).
+:- use_module(lsp(lsp_highlights), []).
+
 :- if(current_predicate(xref_called/5)).
 %! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.
 %  Find the callers and locations of the goal =Clause=, starting from
@@ -201,33 +208,33 @@ seek_to_line(Stream, N) :-
 seek_to_line(_, _).
 
 clause_variable_positions(Path, Line, Variables) :-
-    xref_source(Path),
-    findall(Op, xref_op(Path, Op), Ops),
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        ( read_source_term_at_location(
-              Stream, Term,
-              [line(Line),
-               subterm_positions(SubPos),
-               variable_names(VarNames),
-               operators(Ops),
-               error(Error)]),
-          ( var(Error)
-          -> bagof(
-              VarName-Locations,
-              Offsets^ColOffsets^Var^Offset^(
-                  member(VarName=Var, VarNames),
-                  bagof(Offset, find_var(Term, Offset, SubPos, Var), Offsets),
-                  collapse_adjacent(Offsets, ColOffsets),
-                  maplist(offset_line_char(Stream), ColOffsets, Locations)
-              ),
-              Variables)
-          ; ( debug(server, "Error reading term: ~w", [Error]),
-              Variables = [] )
-          )
+    file_lines_start_end(Path, LineCharRange),
+    read_term_positions(Path, TermsWithPositions),
+    % find the top-level term that the offset falls within
+    file_offset_line_position(LineCharRange, Offset, Line, 0),
+    member(TermInfo, TermsWithPositions),
+    SubTermPoses = TermInfo.subterm,
+    arg(1, SubTermPoses, TermFrom),
+    arg(2, SubTermPoses, TermTo),
+    between(TermFrom, TermTo, Offset), !,
+    lsp_highlights:find_in_term_with_positions(
+                       [X]>>( \+ \+ ( X = '$var'(Name), ground(Name) ) ),
+                       TermInfo.term,
+                       TermInfo.subterm,
+                       VariablesPositions, []),
+    findall(
+        VarName-Locations,
+        group_by(
+            VarName,
+            Location,
+            ( member(found_at('$var'(VarName), Location0-_), VariablesPositions),
+              file_offset_line_position(LineCharRange, Location0, L1, C),
+              succ(L0, L1),
+              Location = position(L0, C)
+            ),
+            Locations
         ),
-        close(Stream)
-    ).
+        Variables).
 
 clause_in_file_at_position(Clause, Path, Position) :-
     xref_source(Path),
