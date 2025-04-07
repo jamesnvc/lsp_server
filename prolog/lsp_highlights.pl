@@ -6,17 +6,18 @@
 :- use_module(library(apply_macros)).
 :- use_module(library(yall)).
 
-:- use_module(lsp(lsp_formatter_parser), []).
+:- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
+                                         read_term_positions/2,
+                                         file_offset_line_position/4 ]).
 
 highlights_at_position(Path, Position, Highlights) :-
     highlights_at_position(Path, Position, _, Highlights).
 
 highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
-    % use the read predicate from formatter_parser + the offset <=> line number mapping
-    lsp_formatter_parser:file_lines_start_end(Path, LineCharRange),
-    lsp_formatter_parser:read_term_positions(Path, TermsWithPositions),
+    file_lines_start_end(Path, LineCharRange),
+    read_term_positions(Path, TermsWithPositions),
     % find the top-level term that the offset falls within
-    lsp_formatter_parser:file_offset_line_position(LineCharRange, Offset, Line1, Char0),
+    file_offset_line_position(LineCharRange, Offset, Line1, Char0),
     % find the specific sub-term containing the point
     member(TermInfo, TermsWithPositions),
     SubTermPoses = TermInfo.subterm,
@@ -25,7 +26,7 @@ highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     between(TermFrom, TermTo, Offset), !,
     subterm_leaf_position(TermInfo.term, Offset, SubTermPoses, Leaf),
     ( Leaf = '$var'(_)
-    % if it's a variable, only look inside the containing term
+      % if it's a variable, only look inside the containing term
     -> find_occurrences_of_var(Leaf, TermInfo, Matches)
     % if it's the functor of a term, find all occurrences in the file
     ; functor(Leaf, FuncName, Arity),
@@ -34,15 +35,15 @@ highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     maplist(position_to_match(LineCharRange), Matches, Highlights).
 
 position_to_match(LineCharRange, From-To, Match) :-
-    lsp_formatter_parser:file_offset_line_position(LineCharRange, From, FromLine1, FromCharacter),
-    lsp_formatter_parser:file_offset_line_position(LineCharRange, To, ToLine1, ToCharacter),
+    file_offset_line_position(LineCharRange, From, FromLine1, FromCharacter),
+    file_offset_line_position(LineCharRange, To, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
     succ(ToLine0, ToLine1),
     Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
                        end: _{line: ToLine0, character: ToCharacter}}}.
 position_to_match(LineCharRange, term_position(_, _, FFrom, FTo, _), Match) :-
-    lsp_formatter_parser:file_offset_line_position(LineCharRange, FFrom, FromLine1, FromCharacter),
-    lsp_formatter_parser:file_offset_line_position(LineCharRange, FTo, ToLine1, ToCharacter),
+    file_offset_line_position(LineCharRange, FFrom, FromLine1, FromCharacter),
+    file_offset_line_position(LineCharRange, FTo, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
     succ(ToLine0, ToLine1),
     Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
