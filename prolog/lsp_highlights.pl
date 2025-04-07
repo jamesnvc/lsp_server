@@ -34,14 +34,14 @@ highlights_at_position(Path, line_char(Line1, Char0), Leaf, Highlights) :-
     ),
     maplist(position_to_match(LineCharRange), Matches, Highlights).
 
-position_to_match(LineCharRange, From-To, Match) :-
+position_to_match(LineCharRange, found_at(_, From-To), Match) :- !,
     file_offset_line_position(LineCharRange, From, FromLine1, FromCharacter),
     file_offset_line_position(LineCharRange, To, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
     succ(ToLine0, ToLine1),
     Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
                        end: _{line: ToLine0, character: ToCharacter}}}.
-position_to_match(LineCharRange, term_position(_, _, FFrom, FTo, _), Match) :-
+position_to_match(LineCharRange, found_at(_, term_position(_, _, FFrom, FTo, _)), Match) :-
     file_offset_line_position(LineCharRange, FFrom, FromLine1, FromCharacter),
     file_offset_line_position(LineCharRange, FTo, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
@@ -70,7 +70,7 @@ find_occurrences_of_var(Var, TermInfo, Matches) :-
 
 find_in_term_with_positions(Needle, Term, Position, Matches, Tail) :-
     call(Needle, Term), !, % recurse?
-    Matches = [Position|Tail].
+    Matches = [found_at(Term, Position)|Tail].
 find_in_term_with_positions(Needle, Term, term_position(_, _, _, _, SubPoses), Matches, Tail) :- !,
     find_in_term_subterm(Needle, Term, 1, SubPoses, Matches, Tail).
 find_in_term_with_positions(Needle, Term, list_position(_, _, Elms, TailPos), Matches, Tail) :- !,
