@@ -19,6 +19,7 @@ The main entry point for the Language Server implementation.
                                 tcp_listen/2,
                                 tcp_open_socket/2]).
 :- use_module(library(yall)).
+:- use_module(library(prolog_stack)).
 
 :- include('path_add.pl').
 
@@ -110,7 +111,8 @@ client_handler(Extra-ExtraTail, In, Out) :-
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
 handle_requests(Out, In, Tail) :-
-    handle_request(Out, In, Rest), !,
+    phrase(lsp_request(Req), In, Rest), !,
+    ignore(handle_request(Req, Out)),
     ( var(Rest)
     -> Tail = Rest
     ; handle_requests(Out, Rest, Tail) ).
@@ -126,15 +128,16 @@ send_message(Stream, Msg) :-
     format(Stream, "Content-Length: ~w\r\n\r\n~s", [ContentLength, JsonCodes]),
     flush_output(Stream).
 
-handle_request(OutStream, Input, Rest) :-
-    phrase(lsp_request(Req), Input, Rest),
+handle_request(Req, OutStream) :-
     debug(server(high), "Request ~w", [Req.body]),
-    catch(
-        ( handle_msg(Req.body.method, Req.body, Resp),
-          debug(server(high), "response ~w", [Resp]),
+    catch_with_backtrace(
+        ( ( handle_msg(Req.body.method, Req.body, Resp)
+          -> true
+          ; throw(error(domain_error(handleable_message, Req),
+                        context(_Loc, "handle_msg/3 returned false"))) ),
           ( is_dict(Resp) -> send_message(OutStream, Resp) ; true ) ),
         Err,
-        ( debug(server, "error handling msg ~w", [Err]),
+        ( print_message(error, Err),
           get_dict(id, Req.body, Id),
           send_message(OutStream, _{id: Id,
                                     error: _{code: -32001,
