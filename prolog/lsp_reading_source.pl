@@ -74,7 +74,8 @@ read_term_positions(Path, TermsWithPositions) :-
                                                       subterm_positions(SubTermPos),
                                                       variable_names(VarNames),
                                                       comments(Comments),
-                                                      syntax_errors(error)]),
+                                                      % maybe use `error` for running standalone?
+                                                      syntax_errors(dec10)]),
           maplist([Name=Var]>>( Var = '$var'(Name) ), VarNames),
           arg(1, Acc, Lst),
           nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
