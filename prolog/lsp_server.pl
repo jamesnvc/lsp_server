@@ -177,8 +177,7 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                                                 % [TODO] implement deltas
                                                 full: _{delta: false}},
                       workspace: _{workspaceFolders: _{supported: true,
-                                                       changeNotifications: true}}
-                    }) :-
+                                                       changeNotifications: true}}}) :-
     token_types(TokenTypes),
     token_modifiers(TokenModifiers).
 
