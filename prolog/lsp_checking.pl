@@ -17,8 +17,8 @@ Module for checking Prolog source files for errors and warnings.
 :- include('path_add.pl').
 :- use_module(lsp(lsp_utils), [clause_variable_positions/3]).
 
-:- dynamic message_hook/3.
-:- multifile message_hook/3.
+:- dynamic user:message_hook/3.
+:- multifile user:message_hook/3.
 
 %! check_errors(+Path:atom, -Errors:List) is det.
 %
@@ -31,7 +31,7 @@ check_errors(Path, Errors) :-
                 stream_position_data(line_count, Pos, Line),
                 stream_position_data(line_position, Pos, Char),
                 nb_getval(checking_errors, ErrList),
-                nb_setval(checking_errors, [Term-Kind-Lines-Line-Char|ErrList])
+                nb_setval(checking_errors, [e(Term, Kind, Lines, Line, Char)|ErrList])
            ),
     setup_call_cleanup(
         assertz(Hook, Ref),
@@ -41,7 +41,7 @@ check_errors(Path, Errors) :-
     nb_getval(checking_errors, ErrList),
     once(expand_errors(Path, ErrList, Errors-Errors)).
 
-expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs],
+expand_errors(Path, [e(singletons(_, SingletonVars), warning, _, ClauseLine, _)|InErrs],
               OutErrs-Tail0) :- !,
     clause_variable_positions(Path, ClauseLine, VariablePoses),
     list_to_assoc(VariablePoses, VarPoses),
@@ -61,22 +61,22 @@ expand_errors(Path, [singletons(_, SingletonVars)-warning-_-ClauseLine-_|InErrs]
         Tail1
     ),
     expand_errors(Path, InErrs, OutErrs-Tail1).
-expand_errors(Path, [_-silent-_-_-_|InErr], OutErrs-Tail) :- !,
+expand_errors(Path, [e(_, silent, _, _, _)|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
-expand_errors(Path, [_Term-error-Lines-_-_|InErrs], OutErrs-[Err|Tail]) :-
+expand_errors(Path, [e(_Term, error, Lines, _, _)|InErrs], OutErrs-[Err|Tail]) :-
     Lines = [url(_File:Line1:Col1), _, _, Msg0], !,
     ( Msg0 = Fmt-Params
     -> format(string(Msg), Fmt, Params)
-    ;  Msg = Msg0 ),
+    ;  text_to_string(Msg0, Msg) ),
     succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ),
     Err = _{severity: 1,
             source: "prolog_xref",
             range: _{start: _{line: Line0, character: Col0},
                      end: _{line: Line1, character: 0}},
             message: Msg
-           },
+    },
     expand_errors(Path, InErrs, OutErrs-Tail).
-expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
+expand_errors(Path, [e(_Term, Kind, Lines, _, _)|InErr], OutErrs-[Err|Tail]) :-
     kind_level(Kind, Level),
     Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
     maplist(expand_error_message, Msgs0, Msgs),
@@ -88,7 +88,7 @@ expand_errors(Path, [_Term-Kind-Lines-_-_|InErr], OutErrs-[Err|Tail]) :-
             range: _{start: _{line: Line0, character: Char0},
                      end: _{line: Line1, character: 0}},
             message: Msg
-           },
+    },
     expand_errors(Path, InErr, OutErrs-Tail).
 expand_errors(Path, [_Msg|InErr], OutErrs-Tail) :- !,
     expand_errors(Path, InErr, OutErrs-Tail).
