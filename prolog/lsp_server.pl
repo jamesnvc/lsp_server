@@ -337,8 +337,7 @@ handle_msg("textDocument/didClose", Msg, false) :-
     retractall(loaded_source(Path)).
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
-handle_msg("$/cancelRequest", Msg, false) :-
-    debug(server, "Cancel request Msg ~w", [Msg]).
+handle_msg("$/cancelRequest", _Msg, false).
 handle_msg("exit", _Msg, false) :-
     debug(server, "recieved exit, shutting down", []),
     halt.
