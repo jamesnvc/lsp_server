@@ -309,20 +309,3 @@ find_containing_term(Offset, [Dict|_], [DP|_], Term, P) :-
     find_containing_term(Offset, [Value], [ValuePos], Term, P).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
-
-find_var(Term, Offset, Loc, Var), Var == Term =>
-    Loc = F-T, between(F, T, Offset).
-find_var(Term, Offset, term_position(F, T, _, _, SubPoses), Var) =>
-    between(F, T, Offset),
-    % using compound_name_arguments/3 instead of =.. to handle
-    % zero-arg terms properly
-    compound_name_arguments(Term, _, SubTerms),
-    find_containing_term(Offset, SubTerms, SubPoses, SubTerm, SubPos),
-    find_var(SubTerm, Offset, SubPos, Var).
-find_var(Term, Offset, parentheses_term_position(F, T, SubPoses), Var) =>
-    between(F, T, Offset),
-    find_var(Term, Offset, SubPoses, Var).
-find_var({SubTerm}, Offset, brace_term_position(F, T, SubPos), Var) =>
-    between(F, T, Offset),
-    find_var(SubTerm, Offset, SubPos, Var).
-find_var(Term, Offset, SubPos, Var), Term \== Var => fail.
