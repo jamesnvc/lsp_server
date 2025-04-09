@@ -12,7 +12,7 @@ Module for formatting Prolog source code
 :- use_module(library(readutil), [ read_file_to_string/3 ]).
 :- use_module(library(macros)).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 :- use_module(lsp(lsp_formatter_parser), [ reified_format_for_file/2,
                                            emit_reified/2 ]).
 

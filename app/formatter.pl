@@ -1,6 +1,6 @@
 :- use_module(library(main)).
 
-:- include('../prolog/path_add.pl').
+:- include('../prolog/_lsp_path_add.pl').
 
 :- use_module(lsp(lsp_formatter), [ file_formatted/2 ]).
 :- use_module(lsp(lsp_formatter_parser), [ emit_reified/2 ]).

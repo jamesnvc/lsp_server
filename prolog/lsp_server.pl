@@ -21,7 +21,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(yall)).
 :- use_module(library(prolog_stack)).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 
 :- use_module(lsp(lsp_utils)).
 :- use_module(lsp(lsp_checking), [check_errors/2]).

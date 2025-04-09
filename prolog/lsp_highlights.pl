@@ -1,6 +1,6 @@
 :- module(lsp_highlights, [ highlights_at_position/3 ]).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 
 :- use_module(library(apply), [maplist/2]).
 :- use_module(library(apply_macros)).

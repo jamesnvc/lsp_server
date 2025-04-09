@@ -16,7 +16,7 @@ Uses =lsp_changes= in order to see the state of the buffer being edited.
 :- use_module(library(prolog_xref), [ xref_defined/3, xref_source/2 ]).
 :- use_module(library(yall)).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 
 :- use_module(lsp(lsp_utils), [ linechar_offset/3 ]).
 :- use_module(lsp(lsp_changes), [ doc_text_fallback/2 ]).

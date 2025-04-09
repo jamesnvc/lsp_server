@@ -2,7 +2,7 @@
 
 :- use_module(library(plunit)).
 
-:- include('../prolog/path_add.pl').
+:- include('../prolog/_lsp_path_add.pl').
 :- use_module(lsp(lsp_parser)).
 
 :- begin_tests(parsing).

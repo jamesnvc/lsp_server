@@ -14,7 +14,7 @@ Module for parsing Prolog source code, for subsequent formatting
 :- use_module(library(rbtrees)).
 :- use_module(library(readutil), [ read_file_to_string/3 ]).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 
 :- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
                                          read_term_positions/2,

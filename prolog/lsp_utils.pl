@@ -27,7 +27,7 @@ source and stuff.
 :- use_module(library(sgml), [load_html/3]).
 :- use_module(library(yall)).
 
-:- include('path_add.pl').
+:- include('_lsp_path_add.pl').
 
 :- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
                                          read_term_positions/2,
