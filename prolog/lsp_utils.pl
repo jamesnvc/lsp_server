@@ -31,8 +31,9 @@ source and stuff.
 
 :- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
                                          read_term_positions/2,
+                                         read_term_positions/4,
+                                         find_in_term_with_positions/5,
                                          file_offset_line_position/4 ]).
-:- use_module(lsp(lsp_highlights), []).
 
 :- if(current_predicate(xref_called/5)).
 %! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.
@@ -217,11 +218,12 @@ clause_variable_positions(Path, Line, Variables) :-
     arg(1, SubTermPoses, TermFrom),
     arg(2, SubTermPoses, TermTo),
     between(TermFrom, TermTo, Offset), !,
-    lsp_highlights:find_in_term_with_positions(
-                       [X]>>( \+ \+ ( X = '$var'(Name), ground(Name) ) ),
-                       TermInfo.term,
-                       TermInfo.subterm,
-                       VariablesPositions, []),
+    find_in_term_with_positions(
+        [X]>>( \+ \+ ( X = '$var'(Name), ground(Name) ) ),
+        TermInfo.term,
+        TermInfo.subterm,
+        VariablesPositions, []
+    ),
     findall(
         VarName-Locations,
         group_by(
