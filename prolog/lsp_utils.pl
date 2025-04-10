@@ -98,7 +98,7 @@ find_subclause(Stream, Subclause, CallerLine, Locations) :-
 offset_line_char(Stream, Offset, position(Line, Char)) :-
     % seek(Stream, 0, bof, _),
     % for some reason, seek/4 isn't zeroing stream line position
-    set_stream_position(Stream, '$stream_position'(0,0,0,0)),
+    set_stream_position(Stream, '$stream_position'(0, 0, 0, 0)),
     setup_call_cleanup(
         open_null_stream(NullStream),
         copy_stream_data(Stream, NullStream, Offset),
@@ -306,7 +306,7 @@ find_containing_term(Offset, [Terms|_], [LP|_], Term, P) :-
 find_containing_term(Offset, [Dict|_], [DP|_], Term, P) :-
     DP = dict_position(_, _, _, _, Ps),
     member(key_value_position(_F, _T, _SepF, _SepT, Key, _KeyPos, ValuePos),
-          Ps),
+           Ps),
     get_dict(Key, Dict, Value),
     find_containing_term(Offset, [Value], [ValuePos], Term, P).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
