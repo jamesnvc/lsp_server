@@ -33,6 +33,7 @@ source and stuff.
                                          read_term_positions/2,
                                          read_term_positions/4,
                                          find_in_term_with_positions/5,
+                                         position_to_match/3,
                                          file_offset_line_position/4 ]).
 
 :- if(current_predicate(xref_called/5)).
@@ -46,14 +47,16 @@ called_at(Path, Clause, By, Location) :-
     name_callable(Clause, Callable),
     xref_source(Path),
     xref_called(Path, Callable, By, _, CallerLine),
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        ( find_subclause(Stream, Clause, CallerLine, Locations),
-          member(Location, Locations),
-          Location \= position(_, 0) ),
-        close(Stream)
-    ).
-called_at(Path, Name/Arity, By, Location) :-
+    % xref_defined(Path, Callable, How), % if How is dcg, add 2 to arity?
+    file_lines_start_end(Path, LineCharRange),
+    file_offset_line_position(LineCharRange, Offset, CallerLine, 0),
+    read_term_positions(Path, Offset, Offset, TermInfos),
+    Clause = FuncName/Arity,
+    find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Matches, []),
+    maplist(position_to_match(LineCharRange), Matches, Location).
+/*
+called_at(Path, Name/Arity, By, Location) :- fail,
+    % check xref_defined(?Source, +Goal, dcg)
     DcgArity is Arity + 2,
     name_callable(Name/DcgArity, Callable),
     xref_source(Path),
@@ -65,11 +68,54 @@ called_at(Path, Name/Arity, By, Location) :-
           Location \= position(_, 0) ),
         close(Stream)
     ).
+*/
 :- else.
 called_at(Path, Callable, By, Ref) :-
     xref_called(Path, Callable, By),
     xref_defined(Path, By, Ref).
 :- endif.
+
+find_occurences_of_callable(_, _, _, [], Tail, Tail).
+find_occurences_of_callable(Path, FuncName, Arity, [TermInfo|TermInfos], Matches, Tail) :-
+    setup_call_cleanup(
+        nb_setval(lsp_find_callable_in_meta, false),
+        find_in_term_with_positions(term_matches_callable(Path, FuncName, Arity),
+                                    TermInfo.term, TermInfo.subterm, Matches, Tail0),
+        nb_delete(lsp_find_callable_in_meta)),
+    find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Tail0, Tail).
+
+term_matches_callable(Path, FuncName, Arity, Term, Position) :-
+    arg(1, Position, Start),
+    arg(2, Position, End),
+    ( nb_getval(lsp_find_callable_in_meta, in_meta(_, MStart, MEnd)),
+      once( Start > MEnd ; End < MStart )
+    -> nb_setval(lsp_find_callable_in_meta, false)
+    ; true ),
+    term_matches_callable_(Path, FuncName, Arity, Term, Position).
+
+term_matches_callable_(_, FuncName, Arity, Term, _) :-
+    nonvar(Term), Term = FuncName/Arity.
+term_matches_callable_(_, FuncName, Arity, Term, _) :-
+    nonvar(Term),
+    functor(T, FuncName, Arity),
+    Term = T, !.
+term_matches_callable_(_, FuncName, Arity, Term, _) :-
+    nonvar(Term),
+    % TODO check the argument
+    nb_getval(lsp_find_callable_in_meta, in_meta(N, _, _)),
+    MArity is Arity - N,
+    functor(T, FuncName, MArity),
+    Term = T, !.
+term_matches_callable_(Path, _, _, Term, Position) :-
+    nonvar(Term), compound(Term),
+    compound_name_arity(Term, ThisName, ThisArity),
+    name_callable(ThisName/ThisArity, Callable),
+    xref_meta(Path, Callable, Called),
+    member(E, Called), nonvar(E), E = _+N, integer(N),
+    arg(1, Position, Start),
+    arg(2, Position, End),
+    nb_setval(lsp_find_callable_in_meta, in_meta(N, Start, End)),
+    fail.
 
 defined_at(Path, Name/Arity, Location) :-
     name_callable(Name/Arity, Callable),

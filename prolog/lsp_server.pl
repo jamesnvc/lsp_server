@@ -240,13 +240,15 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     succ(Line0, Line1),
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     findall(
-        Location,
+        Locations,
         ( loaded_source(Doc),
           atom_concat('file://', Doc, DocUri),
-          called_at(Doc, Clause, Caller, Loc),
-          relative_ref_location(DocUri, Caller, Loc, Location)
+          called_at(Doc, Clause, _Caller, Locs0),
+          % handle the case where Caller = imported(Path)?
+          maplist([D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locations)
         ),
-        Locations), !.
+        LLocations), !,
+    append(LLocations, Locations).
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     _{id: Id, params: Params} :< Msg,
