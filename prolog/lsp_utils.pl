@@ -85,36 +85,34 @@ called_at(Path, Callable, By, Ref) :-
 
 find_occurences_of_callable(_, _, _, [], Tail, Tail).
 find_occurences_of_callable(Path, FuncName, Arity, [TermInfo|TermInfos], Matches, Tail) :-
-    setup_call_cleanup(
-        nb_setval(lsp_find_callable_in_meta, false),
-        find_in_term_with_positions(term_matches_callable(Path, FuncName, Arity),
-                                    TermInfo.term, TermInfo.subterm, Matches, Tail0),
-        nb_delete(lsp_find_callable_in_meta)),
+    FindState = in_meta(false),
+    find_in_term_with_positions(term_matches_callable(FindState, Path, FuncName, Arity),
+                                TermInfo.term, TermInfo.subterm, Matches, Tail0),
     find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Tail0, Tail).
 
-term_matches_callable(Path, FuncName, Arity, Term, Position) :-
+term_matches_callable(FindState, Path, FuncName, Arity, Term, Position) :-
     arg(1, Position, Start),
     arg(2, Position, End),
-    ( nb_getval(lsp_find_callable_in_meta, in_meta(_, MStart, MEnd)),
+    ( arg(1, FindState, in_meta(_, MStart, MEnd)),
       once( Start > MEnd ; End < MStart )
-    -> nb_setval(lsp_find_callable_in_meta, false)
+    -> nb_setarg(1, FindState, false)
     ; true ),
-    term_matches_callable_(Path, FuncName, Arity, Term, Position).
+    term_matches_callable_(FindState, Path, FuncName, Arity, Term, Position).
 
-term_matches_callable_(_, FuncName, Arity, Term, _) :-
+term_matches_callable_(_, _, FuncName, Arity, Term, _) :-
     nonvar(Term), Term = FuncName/Arity.
-term_matches_callable_(_, FuncName, Arity, Term, _) :-
+term_matches_callable_(_, _, FuncName, Arity, Term, _) :-
     nonvar(Term),
     functor(T, FuncName, Arity),
     Term = T, !.
-term_matches_callable_(_, FuncName, Arity, Term, _) :-
+term_matches_callable_(State, _, FuncName, Arity, Term, _) :-
     nonvar(Term),
     % TODO check the argument
-    nb_getval(lsp_find_callable_in_meta, in_meta(N, _, _)),
+    arg(1, State, in_meta(N, _, _)),
     MArity is Arity - N,
     functor(T, FuncName, MArity),
     Term = T, !.
-term_matches_callable_(Path, _, _, Term, Position) :-
+term_matches_callable_(State, Path, _, _, Term, Position) :-
     nonvar(Term), compound(Term),
     compound_name_arity(Term, ThisName, ThisArity),
     name_callable(ThisName/ThisArity, Callable),
@@ -122,7 +120,7 @@ term_matches_callable_(Path, _, _, Term, Position) :-
     member(E, Called), nonvar(E), E = _+N, integer(N),
     arg(1, Position, Start),
     arg(2, Position, End),
-    nb_setval(lsp_find_callable_in_meta, in_meta(N, Start, End)),
+    nb_setarg(1, State, in_meta(N, Start, End)),
     fail.
 
 defined_at(Path, Name/Arity, Location) :-
