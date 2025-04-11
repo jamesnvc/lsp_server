@@ -1,4 +1,4 @@
-:- module(lsp_utils, [called_at/4,
+:- module(lsp_utils, [called_at/3,
                       defined_at/3,
                       name_callable/2,
                       relative_ref_location/4,
@@ -37,46 +37,51 @@ source and stuff.
                                          file_offset_line_position/4 ]).
 
 :- if(current_predicate(xref_called/5)).
-%! called_at(+Path:atom, +Clause:term, -By:term, -Location:term) is nondet.
+%! called_at(+Path:atom, +Clause:term, -Locations:list) is det.
 %  Find the callers and locations of the goal =Clause=, starting from
-%  the file =Path=. =Location= will be bound to all the callers and
-%  locations that the =Clause= is called from like =Caller-Location=.
-%
-%  @see find_subclause/4
-called_at(Path, Clause, By, Locations) :-
+%  the file =Path=. =Locations= will be a list of all the callers and
+%  locations that the =Clause= is called from as LSP-formatted dicts.
+called_at(Path, Clause, Locations) :-
+    setof(L, Path^Clause^Locs^(
+                 called_at_(Path, Clause, Locs),
+                 member(L, Locs)
+             ),
+          Locations), !.
+called_at(Path, Clause, Locations) :-
     name_callable(Clause, Callable),
     xref_source(Path),
-    xref_called(Path, Callable, By, _, CallerLine),
-    % xref_defined(Path, Callable, How), % if How is dcg, add 2 to arity?
+    xref_called(Path, Callable, _By, _, CallerLine),
+    % we couldn't find the definition, but we know it's in that form, so give that at least
+    succ(CallerLine0, CallerLine),
+    Locations = [_{range: _{start: _{line: CallerLine0, character: 0},
+                            end: _{line: CallerLine, character: 0}}}].
+
+called_at_(Path, Clause, Locations) :-
+    name_callable(Clause, Callable),
+    xref_source(Path),
+    xref_called(Path, Callable, _By, _, CallerLine),
     file_lines_start_end(Path, LineCharRange),
     file_offset_line_position(LineCharRange, Offset, CallerLine, 0),
     read_term_positions(Path, Offset, Offset, TermInfos),
     Clause = FuncName/Arity,
     find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Matches, []),
-    maplist(position_to_match(LineCharRange), Matches, Locations), !.
-called_at(Path, Clause, By, Locations) :-
-    name_callable(Clause, Callable),
+    maplist(position_to_match(LineCharRange), Matches, Locations).
+called_at_(Path, Clause, Locations) :-
     xref_source(Path),
-    xref_called(Path, Callable, By, _, CallerLine),
-    % we couldn't find the definition, but we know it's in that form, so give that at least
-    succ(CallerLine0, CallerLine),
-    Locations = [_{range: _{start: _{line: CallerLine0, character: 0},
-                            end: _{line: CallerLine, character: 0}}}].
-/*
-called_at(Path, Name/Arity, By, Location) :- fail,
-    % check xref_defined(?Source, +Goal, dcg)
+    Clause = FuncName/Arity,
     DcgArity is Arity + 2,
-    name_callable(Name/DcgArity, Callable),
-    xref_source(Path),
-    xref_called(Path, Callable, By, _, CallerLine),
-    setup_call_cleanup(
-        open(Path, read, Stream, []),
-        ( find_subclause(Stream, Name/Arity, CallerLine, Locations),
-          member(Location, Locations),
-          Location \= position(_, 0) ),
-        close(Stream)
-    ).
-*/
+    DcgClause = FuncName/DcgArity,
+    name_callable(DcgClause, DcgCallable),
+    xref_defined(Path, DcgCallable, dcg),
+    name_callable(DcgClause, DcgCallable),
+    xref_called(Path, DcgCallable, _By, _, CallerLine),
+    file_lines_start_end(Path, LineCharRange),
+    file_offset_line_position(LineCharRange, Offset, CallerLine, 0),
+    read_term_positions(Path, Offset, Offset, TermInfos),
+    find_occurences_of_callable(Path, FuncName, DcgArity, TermInfos, Matches, Tail0),
+    % also look for original arity in a dcg context?
+    find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Tail0, []),
+    maplist(position_to_match(LineCharRange), Matches, Locations).
 :- else.
 called_at(Path, Callable, By, Ref) :-
     xref_called(Path, Callable, By),
