@@ -79,7 +79,9 @@ called_at_(Path, Clause, Locations) :-
     file_offset_line_position(LineCharRange, Offset, CallerLine, 0),
     read_term_positions(Path, Offset, Offset, TermInfos),
     find_occurences_of_callable(Path, FuncName, DcgArity, TermInfos, Matches, Tail0),
-    % also look for original arity in a dcg context?
+    % also look for original arity in a dcg context
+    % TODO: modify this to check that it's inside a DCG if it has this
+    % arity...but not in braces?
     find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Tail0, []),
     maplist(position_to_match(LineCharRange), Matches, Locations).
 :- else.
