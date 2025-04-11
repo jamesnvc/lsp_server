@@ -43,7 +43,7 @@ source and stuff.
 %  locations that the =Clause= is called from like =Caller-Location=.
 %
 %  @see find_subclause/4
-called_at(Path, Clause, By, Location) :-
+called_at(Path, Clause, By, Locations) :-
     name_callable(Clause, Callable),
     xref_source(Path),
     xref_called(Path, Callable, By, _, CallerLine),
@@ -53,7 +53,15 @@ called_at(Path, Clause, By, Location) :-
     read_term_positions(Path, Offset, Offset, TermInfos),
     Clause = FuncName/Arity,
     find_occurences_of_callable(Path, FuncName, Arity, TermInfos, Matches, []),
-    maplist(position_to_match(LineCharRange), Matches, Location).
+    maplist(position_to_match(LineCharRange), Matches, Locations), !.
+called_at(Path, Clause, By, Locations) :-
+    name_callable(Clause, Callable),
+    xref_source(Path),
+    xref_called(Path, Callable, By, _, CallerLine),
+    % we couldn't find the definition, but we know it's in that form, so give that at least
+    succ(CallerLine0, CallerLine),
+    Locations = [_{range: _{start: _{line: CallerLine0, character: 0},
+                            end: _{line: CallerLine, character: 0}}}].
 /*
 called_at(Path, Name/Arity, By, Location) :- fail,
     % check xref_defined(?Source, +Goal, dcg)
