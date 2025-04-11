@@ -204,16 +204,16 @@ position_to_match(LineCharRange, found_at(_, term_position(_, _, FFrom, FTo, _))
     Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
                        end: _{line: ToLine0, character: ToCharacter}}}.
 
-:- meta_predicate find_in_term_with_positions(1, +, +, -, -).
+:- meta_predicate find_in_term_with_positions(2, +, +, -, -).
 
 %! find_in_term_with_positions(+Search:callable, +Term, +Positions, -Matches, -Tail) is det.
 %
-%  True when Search is a callable that takes a term as argument and is
+%  True when Search is a callable that takes two arguments, a term and its position, and is
 %  true if the term should be included in match, Term is the term in
 %  which to search, Positions is the subterm positions as given from read_term_positions/2,
 %  Matches is a list of the found matching terms, and Tail is the tail of the Matches list.
 find_in_term_with_positions(Needle, Term, Position, Matches, Tail) :-
-    call(Needle, Term), !, % recurse?
+    call(Needle, Term, Position), !, % recurse?
     Matches = [found_at(Term, Position)|Tail].
 find_in_term_with_positions(Needle, Term, term_position(_, _, _, _, SubPoses), Matches, Tail) :- !,
     find_in_term_subterm(Needle, Term, 1, SubPoses, Matches, Tail).

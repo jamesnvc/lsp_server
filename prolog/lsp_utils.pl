@@ -219,7 +219,7 @@ clause_variable_positions(Path, Line, Variables) :-
     arg(2, SubTermPoses, TermTo),
     between(TermFrom, TermTo, Offset), !,
     find_in_term_with_positions(
-        [X]>>( \+ \+ ( X = '$var'(Name), ground(Name) ) ),
+        [X, _]>>( \+ \+ ( X = '$var'(Name), ground(Name) ) ),
         TermInfo.term,
         TermInfo.subterm,
         VariablesPositions, []
