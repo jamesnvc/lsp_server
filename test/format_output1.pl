@@ -151,4 +151,7 @@ testing_dict_formatting(A) :-
             ),
             A).
 
+sthsnthsnth(X) :-
+    X = ':'(_, _).
+
 % end comment

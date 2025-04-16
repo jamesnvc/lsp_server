@@ -81,7 +81,7 @@ emit_reified_(To, string(T)) =>
     format(To, "`~s`", [T]).
 emit_reified_(To, term_begin(Func, _, Parens)) =>
     ( Parens = true
-    -> Format = "~q("
+    -> Format = "~w("
     ;  Format = "~w" ),
     format(To, Format, [Func]).
 emit_reified_(To, term_end(Parens, TermState)) =>
@@ -173,7 +173,11 @@ expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo,
 expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, SubPoses),
                          Expanded, ExTail) =>
     % using functor/4 to allow round-tripping zero-arity functors
-    functor(Term, Func, Arity, TermType),
+    functor(Term, _Func, Arity, TermType),
+    current_source_string(FileString),
+    Length is FTo - FFrom,
+    sub_string(FileString, FFrom, Length, _, FuncString),
+    atom_string(Func, FuncString),
     % better way to tell if term is parenthesized?
     % read functor from current_source_string/1 (as with simple below)
     % and see if parens are there?
