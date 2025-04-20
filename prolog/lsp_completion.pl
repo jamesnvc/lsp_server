@@ -55,7 +55,7 @@ completions_at(File, Position, Completions) :-
         ( xref_defined(File, Goal, _),
           functor(Goal, Name, Arity),
           atom_concat(Prefix, _, Name),
-          ( predicate_arguments(File, Name, Args) -> true ; args_str(Arity, Args) ),
+          ( predicate_arguments(File, Name/Arity, Args) -> true ; args_str(Arity, Args) ),
           format(string(Func), "~w(~w)$0", [Name, Args]),
           format(string(Label), "~w/~w", [Name, Arity]),
           Result = _{label: Label,
@@ -70,7 +70,7 @@ completions_at(File, Position, Completions) :-
           functor(Goal, Name, Arity),
           atom_concat(Prefix, _, Name),
           \+ sub_atom(Name, 0, _, _, '$'),
-          ( predicate_arguments(File, Name, Args) -> true ; args_str(Arity, Args) ),
+          ( predicate_arguments(File, Name/Arity, Args) -> true ; args_str(Arity, Args) ),
           format(string(Func), "~w(~w)$0", [Name, Args]),
           format(string(Label), "~w/~w", [Name, Arity]),
           Result = _{label: Label,
@@ -79,8 +79,8 @@ completions_at(File, Position, Completions) :-
         CompletionsTail
     ).
 
-predicate_arguments(File, Pred, ArgsStr) :-
-    lsp_utils:predicate_help(File, Pred, HelpText),
+predicate_arguments(File, Pred/Arity, ArgsStr) :-
+    lsp_utils:predicate_help(File, Pred/Arity, HelpText),
     string_concat(Pred, "(", PredName),
     sub_string(HelpText, BeforeName, NameLen, _, PredName),
     sub_string(HelpText, BeforeClose, _, _, ")"),
@@ -90,6 +90,7 @@ predicate_arguments(File, Pred, ArgsStr) :-
     sub_string(HelpText, ArgsStart, ArgsLength, _, ArgsStr0),
     atomic_list_concat(Args, ', ', ArgsStr0),
     length(Args, Length),
+    Arity = Length,
     numlist(1, Length, Nums),
     maplist([Arg, Num, S]>>format(string(S), "${~w:~w}", [Num, Arg]),
             Args, Nums, Args1),
