@@ -103,6 +103,8 @@ return {
 }
 #+end_src
 
+And add ~vim.ls.enable({'prolog'})~ to ~$XDG_CONFIG_DIR/nvim/init.lua~.
+
 ** Native LSP (for Neovim >= 0.5 < 0.11)
 
 Install the [[https://github.com/neovim/nvim-lspconfig][neovim/nvim-lspconfig]] package
