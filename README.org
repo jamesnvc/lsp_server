@@ -211,3 +211,16 @@ Choose one from the list below:
     2. ~npm install~
     3. ~npx vsce package~
     4. add the resulting ~.vsix~ to VSCode by clicking the ~...~ at the top right of the "Extensions" panel then selecting ~Install from VSIX...~
+
+
+* Helix
+
+Helix already includes configuration for this Prolog LSP server, so it should mostly Just Work.
+
+However, the default configuration gives the '.pl' extension to perl, so to avoid having to manually do ~:set-language prolog~ each time, you can add the following to ~$XDG_CONFIG/helix/languages.toml~ to remove Perl's association with that extension:
+
+#+begin_src toml
+[[language]]
+name = "perl"
+file-types = ["perl"]
+#+end_src
