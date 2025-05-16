@@ -48,7 +48,7 @@ main(Args) :-
     ( Args = [ReleaseType], increment_version(ReleaseType, [0, 0, 0], _)
     -> true
     ;  ( format(user_error, "Usage: make_release.pl [major|minor|patch]~n", []),
-         halt(1) )),
+         halt(1) ) ),
     ( stream_property(user_input, tty(true))
     -> format("Make new release? [y/n]: ", []),
        read_line_to_string(user_input, Input),
