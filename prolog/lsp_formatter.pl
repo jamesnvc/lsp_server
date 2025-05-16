@@ -98,8 +98,7 @@ correct_indentation(State0,
     correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], Out) :-
     once((In = term_begin('->', compound, false)
-         ; In = term_begin(';', compound, false)
-         )),
+        ; In = term_begin(';', compound, false))),
     indent_state_top(State0, defn_body_indent), !,
     indent_state_pop(State0, State1),
     outdent_align(State1, Indent),
@@ -185,8 +184,8 @@ insert_whitespace_to_indent(State0, [In|InRest], Out) :-
     update_alignment(State2, State3),
     ( ending_term(In)
     -> indent_for_end_term(State3, In, State4, Indent)
-    ;  whitespace_indentation_for_state(State3, Indent),
-       State4 = State3 ),
+    ; whitespace_indentation_for_state(State3, Indent),
+      State4 = State3 ),
     Out = [white(Indent)|OutRest],
     update_state_column(State4, white(Indent), State5),
     correct_indentation(State5, [In|InRest], OutRest).
@@ -312,12 +311,12 @@ create_edit_list(LineNum, [], [NewLine|NewLines], [Edit|Edits]) :- !,
     create_edit_list(LineNum1, [], NewLines, Edits).
 create_edit_list(LineNum, [OrigLine|OrigRest], [FormattedLine|FormattedRest], Edits) :-
     (   OrigLine \= FormattedLine  % Only create an edit if the line has changed
-    -> string_length(OrigLine, LineLen), %TODO: what should this be?
-       Edit = _{range: _{start: _{line: LineNum, character: 0},
-                         end: _{line: LineNum, character: LineLen}},
-                newText: FormattedLine},
-       Edits = [Edit|EditRest]
-    ; EditRest = Edits
+      -> string_length(OrigLine, LineLen), %TODO: what should this be?
+         Edit = _{range: _{start: _{line: LineNum, character: 0},
+                           end: _{line: LineNum, character: LineLen}},
+                  newText: FormattedLine},
+         Edits = [Edit|EditRest]
+      ; EditRest = Edits
     ),
     succ(LineNum, LineNum1),
     create_edit_list(LineNum1, OrigRest, FormattedRest, EditRest).
