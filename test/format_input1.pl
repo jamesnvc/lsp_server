@@ -133,12 +133,14 @@ expand_subterm_positions(Term, _TermState, term_position(_From, _To, FFrom, FTo,
     functor(Term, _, Arity, _),                   % comments
     expand_term_subterms_positions(false, Term, Arity, 1, SubPoses, ExpandedTail0, ExTail).
 
-foo(A, B, C, D, E) :-
+foo(A, B, C, D, E, F) :-
     ( A = 1
     -> B = 2
     ; ( C = 3
       -> D = 4
-      ; E = 5 ) ).
+      ; ( A =:= 1
+        -> E = 5
+        ;  F = 7 ) ) ).
 
 testing_dict_formatting(A) :-
     findall(B,
@@ -153,5 +155,35 @@ testing_dict_formatting(A) :-
 
 sthsnthsnth(X) :-
     X = ':'(_, _).
+
+foo_bar(F,B) :-
+      ( F = f, B = b
+         ; F = fo, B = ba
+             ; F = foo, B = bar
+      ).
+
+add_use_if_needed__(LastModuleAt, AlreadyImported, Stream, Path, Module, Predicates) :-
+    repeat,
+    prolog_read_source_term(Stream, Term, _Ex, [subterm_positions(SubTermPos),
+                                                syntax_errors(dec10)]),
+    once(( Term = (:- use_module(ImpModule))
+                ; Term = (:- use_module(ImpModule, _))
+                 ; Term = (:- ensure_loaded(_))
+                  ; Term = (:- module(_, _))
+                    ; Term = end_of_file )),
+    Term = end_of_file, !,
+    true.
+
+add_use_if_needed__(LastModuleAt, AlreadyImported, Stream, Path, Module, Predicates) :-
+    repeat,
+    prolog_read_source_term(Stream, Term, _Ex, [subterm_positions(SubTermPos),
+                                                syntax_errors(dec10)]),
+    once(( Term = (:- use_module(ImpModule)) ;
+               Term = (:- use_module(ImpModule, _)) ;
+                   Term = (:- ensure_loaded(_)) ;
+                       Term = (:- module(_, _)) ;
+                           Term = end_of_file )),
+    Term = end_of_file,
+    true.
 
 % end comment
