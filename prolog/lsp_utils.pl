@@ -6,7 +6,8 @@
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
                       seek_to_line/2,
-                      linechar_offset/3
+                      linechar_offset/3,
+                      url_path/2
                      ]).
 /** <module> LSP Utils
 
@@ -130,11 +131,17 @@ term_matches_callable_(State, Path, _, _, Term, Position) :-
     nb_setarg(1, State, in_meta(N, Start, End)),
     fail.
 
+url_path(Url, Path) :-
+    current_prolog_flag(windows, true),
+    atom_concat('file:///', Path, Url), !.
+url_path(Url, Path) :-
+    atom_concat('file://', Path, Url).
+
 defined_at(Path, Name/Arity, Location) :-
     name_callable(Name/Arity, Callable),
     xref_source(Path),
     xref_defined(Path, Callable, Ref),
-    atom_concat('file://', Path, Doc),
+    url_path(Doc, Path),
     relative_ref_location(Doc, Callable, Ref, Location).
 defined_at(Path, Name/Arity, Location) :-
     % maybe it's a DCG?
@@ -142,7 +149,7 @@ defined_at(Path, Name/Arity, Location) :-
     name_callable(Name/DcgArity, Callable),
     xref_source(Path),
     xref_defined(Path, Callable, Ref),
-    atom_concat('file://', Path, Doc),
+    url_path(Doc, Path),
     relative_ref_location(Doc, Callable, Ref, Location).
 
 
@@ -198,7 +205,7 @@ relative_ref_location(Here, _, local(Line1),
                                             end: _{line: NextLine, character: 0}}}) :-
     !, succ(Line0, Line1), succ(Line1, NextLine).
 relative_ref_location(_, Goal, imported(Path), Location) :-
-    atom_concat('file://', Path, ThereUri),
+    url_path(ThereUri, Path),
     xref_source(Path),
     xref_defined(Path, Goal, Loc),
     relative_ref_location(ThereUri, Goal, Loc, Location).
