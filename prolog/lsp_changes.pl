@@ -33,6 +33,17 @@ handle_doc_change(Path, Change) :-
     retractall(doc_text(Path, _)),
     assertz(doc_text(Path, NewText)).
 handle_doc_change(Path, Change) :-
+    _{range: _{start: _{line: StartLine, character: StartChar},
+               end:   _{line: EndLine,   character: EndChar}},
+      text: Text} :< Change,
+    !,
+    atom_codes(Text, ChangeCodes),
+    doc_text_fallback(Path, OrigCodes),
+    replace_codes_range(OrigCodes, StartLine, StartChar, EndLine, EndChar, ChangeCodes,
+                        NewText),
+    retractall(doc_text(Path, _)),
+    assertz(doc_text(Path, NewText)).
+handle_doc_change(Path, Change) :-
     retractall(doc_text(Path, _)),
     atom_codes(Change.text, TextCodes),
     assertz(doc_text(Path, TextCodes)).
@@ -47,6 +58,33 @@ doc_text_fallback(Path, Text) :-
 doc_text_fallback(Path, Text) :-
     read_file_to_codes(Path, Text, []),
     assertz(doc_text(Path, Text)).
+
+%! replace_codes_range(Text, StartLine, StartChar, EndLine, EndChar, ReplaceText, -NewText) is det.
+replace_codes_range(Text, StartLine, StartChar, EndLine, EndChar, ReplaceText, NewText) :-
+    phrase(replace_range(start, 0, 0, StartLine, StartChar, EndLine, EndChar, ReplaceText),
+           Text,
+           NewText).
+
+replace_range(start, StartLine, StartChar, StartLine, StartChar, EndLine, EndChar, NewText), NewText -->
+    !,
+    replace_range(finish, StartLine, StartChar, StartLine, StartChar, EndLine, EndChar, NewText).
+replace_range(finish, EndLine, EndChar, _, _, EndLine, EndChar, _) --> !, [].
+replace_range(start, StartLine, 0, StartLine, StartChar, EndLine, EndChar, NewText), Take -->
+    { length(Take, StartChar) },
+    Take, !,
+    replace_range(start, StartLine, StartChar, StartLine, StartChar, EndLine, EndChar, NewText).
+replace_range(finish, EndLine, Char, StartLine, StartChar, EndLine, EndChar, NewText) -->
+    !, { ToSkip is EndChar - Char },
+    skip(ToSkip),
+    replace_range(finish, EndLine, EndChar, StartLine, StartChar, EndLine, EndChar, NewText).
+replace_range(start, Line0, _, StartLine, StartChar, EndLine, EndChar, NewText), Line -->
+    line(Line),
+    { succ(Line0, Line1) },
+    replace_range(start, Line1, 0, StartLine, StartChar, EndLine, EndChar, NewText).
+replace_range(finish, Line0, _, StartLine, StartChar, EndLine, EndChar, NewText) -->
+    line(_),
+    { succ(Line0, Line1) },
+    replace_range(finish, Line1, 0, StartLine, StartChar, EndLine, EndChar, NewText).
 
 %! replace_codes(Text, StartLine, StartChar, ReplaceLen, ReplaceText, -NewText) is det.
 replace_codes(Text, StartLine, StartChar, ReplaceLen, ReplaceText, NewText) :-
