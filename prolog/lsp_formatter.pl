@@ -170,6 +170,18 @@ copy_current_alignment(State, Alignment), indent_state_top(State, defn_body) =>
     Alignment = align(#toplevel_indent, 4).
 copy_current_alignment(State, Alignment), indent_state_top(State, align(_, _)) =>
     indent_state_top(State, Alignment).
+copy_current_alignment(State, Alignment), indent_state_top(State, begin(Col, BeganAt)) =>
+    Alignment = begin(Col, BeganAt).
+copy_current_alignment(State, Alignment), indent_state_top(State, defn_body_indent) =>
+    Alignment = align(#toplevel_indent, 4).
+copy_current_alignment(State, Alignment), indent_state_top(State, defn_head(Column, _Aligned)) =>
+    Alignment = align(Column, Column).
+copy_current_alignment(State, Alignment), indent_state_top(State, defn_head_neck) =>
+    Alignment = align(#toplevel_indent, 4).
+copy_current_alignment(State, Alignment), indent_state_top(State, declaration) =>
+    Alignment = align(2, 2).
+copy_current_alignment(State, Alignment) =>
+    indent_state_top(State, Alignment).
 
 insert_whitespace_to_indent(State0, [In|InRest], Out) :-
     indent_state_pop(State0, State1),
