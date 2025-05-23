@@ -133,6 +133,9 @@ term_matches_callable_(State, Path, _, _, Term, Position) :-
 
 url_path(Url, Path) :-
     current_prolog_flag(windows, true),
+    % on windows, in neovim at least, textDocument URI looks like
+    % "file:///C:/foo/bar/baz.pl"; we need to strip off another
+    % leading slash to get a valid path
     atom_concat('file:///', Path, Url), !.
 url_path(Url, Path) :-
     atom_concat('file://', Path, Url).
