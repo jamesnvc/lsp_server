@@ -188,7 +188,7 @@ handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities}}) :-
     _{id: Id, params: Params} :< Msg, !,
     ( Params.rootUri \== null
-    -> ( atom_concat('file://', RootPath, Params.rootUri),
+    -> ( url_path(Params.rootUri, RootPath),
          directory_source_files(RootPath, Files, [recursive(true)]),
          maplist([F]>>assert(loaded_source(F)), Files) )
     ; true ),
@@ -199,14 +199,14 @@ handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
 handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
     _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
-    atom_concat('file://', Path, Doc),
+    url_path(Doc, Path),
     Line1 is Line0 + 1,
     (  help_at_position(Path, Line1, Char0, Help)
     -> Response = _{contents: _{kind: plaintext, value: Help}}
     ;  Response = null  ).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
-    atom_concat('file://', Path, Doc), !,
+    url_path(Doc, Path), !,
     xref_source(Path),
     findall(
         Symbol,
@@ -227,7 +227,7 @@ handle_msg("textDocument/definition", Msg, _{id: Id, result: Location}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Doc},
       position: _{line: Line0, character: Char0}} :< Params,
-    atom_concat('file://', Path, Doc),
+    url_path(Doc, Path),
     succ(Line0, Line1),
     clause_in_file_at_position(Name/Arity, Path, line_char(Line1, Char0)),
     defined_at(Path, Name/Arity, Location).
@@ -236,13 +236,13 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0}} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     succ(Line0, Line1),
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     findall(
         Locations,
         ( loaded_source(Doc),
-          atom_concat('file://', Doc, DocUri),
+          url_path(DocUri, Doc),
           called_at(Doc, Clause, Locs0),
           % handle the case where Caller = imported(Path)?
           maplist([D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locations)
@@ -254,25 +254,25 @@ handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0}} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     succ(Line0, Line1),
     completions_at(Path, line_char(Line1, Char0), Completions).
 handle_msg("textDocument/formatting", Msg, _{id: Id, result: Edits}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     file_format_edits(Path, Edits).
 handle_msg("textDocument/rangeFormatting", Msg, _{id: Id, result: Edits}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}, range: Range} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     file_format_edits(Path, Edits0),
     include(edit_in_range(Range), Edits0, Edits).
 handle_msg("textDocument/documentHighlight", Msg, _{id: Id, result: Locations}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0}} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     succ(Line0, Line1),
     highlights_at_position(Path, line_char(Line1, Char0), Locations), !.
 handle_msg("textDocument/documentHighlight", Msg, _{id: Id, result: null}) :-
@@ -282,7 +282,7 @@ handle_msg("textDocument/rename", Msg, _{id: Id, result: Result}) :-
     _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0},
       newName: NewName} :< Params,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     succ(Line0, Line1),
     % highlights_at_position gives us the location & span of the variables
     % using the 4-arity version instead of 3 so we can specify it should only match a variable
@@ -300,7 +300,7 @@ handle_msg("textDocument/semanticTokens/full", Msg,
            _{id: Id, result: _{data: Highlights}}) :-
     _{id: Id, params: Params} :< Msg,
     _{textDocument: _{uri: Uri}} :< Params,
-    atom_concat('file://', Path, Uri), !,
+    url_path(Uri, Path), !,
     xref_source(Path),
     file_colours(Path, Highlights).
 handle_msg("textDocument/semanticTokens/range", Msg,
@@ -309,7 +309,7 @@ handle_msg("textDocument/semanticTokens/range", Msg,
     _{textDocument: _{uri: Uri}, range: Range} :< Params,
     _{start: _{line: StartLine0, character: StartChar},
       end: _{line: EndLine0, character: EndChar}} :< Range,
-    atom_concat('file://', Path, Uri), !,
+    url_path(Uri, Path), !,
     succ(StartLine0, StartLine), succ(EndLine0, EndLine),
     xref_source(Path),
     file_range_colours(Path,
@@ -320,14 +320,14 @@ handle_msg("textDocument/semanticTokens/range", Msg,
 handle_msg("textDocument/didOpen", Msg, Resp) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
     _{uri: FileUri} :< TextDoc,
-    atom_concat('file://', Path, FileUri),
+    url_path(FileUri, Path),
     ( loaded_source(Path) ; assertz(loaded_source(Path)) ),
     check_errors_resp(FileUri, Resp).
 handle_msg("textDocument/didChange", Msg, false) :-
     _{params: _{textDocument: TextDoc,
                 contentChanges: Changes}} :< Msg,
     _{uri: Uri} :< TextDoc,
-    atom_concat('file://', Path, Uri),
+    url_path(Uri, Path),
     handle_doc_changes(Path, Changes).
 handle_msg("textDocument/didSave", Msg, Resp) :-
     _{params: Params} :< Msg,
@@ -335,7 +335,7 @@ handle_msg("textDocument/didSave", Msg, Resp) :-
 handle_msg("textDocument/didClose", Msg, false) :-
     _{params: _{textDocument: TextDoc}} :< Msg,
     _{uri: FileUri} :< TextDoc,
-    atom_concat('file://', Path, FileUri),
+    url_path(FileUri, Path),
     retractall(loaded_source(Path)).
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
@@ -352,7 +352,7 @@ handle_msg(_, Msg, false) :-
 
 check_errors_resp(FileUri, _{method: "textDocument/publishDiagnostics",
                              params: _{uri: FileUri, diagnostics: Errors}}) :-
-    atom_concat('file://', Path, FileUri),
+    url_path(FileUri, Path),
     check_errors(Path, Errors).
 check_errors_resp(_, false) :-
     debug(server, "Failed checking errors", []).
