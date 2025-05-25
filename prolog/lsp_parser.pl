@@ -21,6 +21,22 @@ headers([Header|Headers]) -->
     header(Header), "\r\n",
     headers(Headers).
 
+%! lsp_request(-Req)// is det.
+%
+%  A DCG nonterminal describing an HTTP request. Currently can only _parse_
+%  the request from a list of codes.
+%
+%  The HTTP headers are parsed into an `assoc` tree which maps
+%  strings to strings. The body of the request is parsed into a dict according
+%  to json_read_dict/3. The headers list must include a `Content-Length`
+%  header.
+%
+%    ==
+%    ?- phrase(lsp_request(Req), `Content-Length: 7\r\n\r\n{"x":1}`).
+%    Req = _{body:_{x:1}, headers:t("Content-Length", "7", -, t, t)}.
+%    ==
+%
+%  @param Req a dict containing keys `headers` and `body`
 lsp_request(_{headers: Headers, body: Body}) -->
     headers(HeadersList),
     { list_to_assoc(HeadersList, Headers),
