@@ -292,7 +292,8 @@ handle_msg("textDocument/rename", Msg, _{id: Id, result: Result}) :-
     atom_string(AUri, Uri), % dict key must be an atom
     dict_create(Changes, _, [AUri=Edits]),
     Result = _{changes: Changes}.
-handle_msg("textDocument/rename", Msg, _{id: Id, error: "Nothing to be edited there"}) :-
+handle_msg("textDocument/rename", Msg, _{id: Id, error: _{message: "Nothing that can be renamed here.",
+                                                          code: -32602}}) :-
     _{id: Id} :< Msg.
 handle_msg("textDocument/semanticTokens", Msg, Response) :-
     handle_msg("textDocument/semanticTokens/full", Msg, Response).
