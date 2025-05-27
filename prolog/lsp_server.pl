@@ -10,6 +10,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3, debug/1]).
 :- use_module(library(http/json), [atom_json_dict/3]).
+:- use_module(library(pio), [phrase_from_stream/2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
 :- use_module(library(utf8), [utf8_codes//1]).
@@ -91,32 +92,32 @@ handle_requests_stream(StreamPair) :-
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
-    % handling UTF decoding in JSON parsing, but doing the auto-translation
-    % causes Content-Length to be incorrect
-    set_stream(In, encoding(octet)),
-    set_stream(Out, encoding(utf8)),
-    client_handler(A-A, In, Out).
-
-client_handler(Extra-ExtraTail, In, Out) :-
-    wait_for_input([In], _, infinite),
-    fill_buffer(In),
-    read_pending_codes(In, ReadCodes, Tail),
-    ( Tail == []
-    -> true
-    ; ( ExtraTail = ReadCodes,
-        handle_requests(Out, Extra, Remainder),
-        client_handler(Remainder-Tail, In, Out) )
-    ).
+    %
+    % TODO: Solve Stream Encoding Problems
+    %
+    %     1. Windows does not allow setting encoding on `user_input` or
+    %        `user_output`.
+    %     2. Non-ascii characters cause `Content-Length` counts to be
+    %        interpreted incorrectly.
+    %
+    % % handling UTF decoding in JSON parsing, but doing the auto-translation
+    % % causes Content-Length to be incorrect
+    % set_stream(In, encoding(octet)),
+    % set_stream(Out, encoding(utf8)),
+    client_handler(In, Out).
 
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
-handle_requests(Out, In, Tail) :-
-    phrase(lsp_request(Req), In, Rest), !,
-    ignore(handle_request(Req, Out)),
-    ( var(Rest)
-    -> Tail = Rest
-    ; handle_requests(Out, Rest, Tail) ).
-handle_requests(_, T, T).
+client_handler(In, Out) :-
+    % Parse an unlimited number of requests from the input stream, responding
+    % to each one as it is received.
+    phrase_from_stream(unlimited(request_and_response(Out)), In).
+
+request_and_response(Out) -->
+    % Parse an lsp request from the input stream
+    lsp_request(Req),
+    % As a side effect, respond to the request
+    { ignore(handle_request(Req, Out)) }.
 
 % general handling stuff
 
