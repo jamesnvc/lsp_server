@@ -38,6 +38,7 @@ The main entry point for the Language Server implementation.
 main :-
     set_prolog_flag(debug_on_error, false),
     set_prolog_flag(report_error, true),
+    set_prolog_flag(verbose, silent),
     set_prolog_flag(toplevel_prompt, ''),
     current_prolog_flag(argv, Args),
     debug(server),
@@ -53,6 +54,8 @@ start([port, Port]) :- !,
 start(Args) :-
     debug(server, "Unknown args ~w", [Args]).
 
+:- dynamic shutdown_request_received/0.
+:- dynamic exit_request_received/0.
 
 % stdio server
 
@@ -72,6 +75,14 @@ socket_server(Port) :-
     dispatch_socket_client(AcceptFd).
 
 dispatch_socket_client(AcceptFd) :-
+    catch(call_with_time_limit(1, dispatch_socket_client_(AcceptFd)),
+          time_limit_exceeded,
+          true),
+    ( shutdown_request_received
+    -> debug(server(high), "Finished socket loop", [])
+    ; dispatch_socket_client(AcceptFd) ).
+
+dispatch_socket_client_(AcceptFd) :-
     tcp_accept(AcceptFd, Socket, Peer),
     thread_create(process_client(Socket, Peer), _, [detached(true)]),
     dispatch_socket_client(AcceptFd).
@@ -98,15 +109,18 @@ handle_requests_stream(StreamPair) :-
     client_handler(A-A, In, Out).
 
 client_handler(Extra-ExtraTail, In, Out) :-
-    wait_for_input([In], _, infinite),
-    fill_buffer(In),
-    read_pending_codes(In, ReadCodes, Tail),
-    ( Tail == []
-    -> true
-    ; ( ExtraTail = ReadCodes,
-        handle_requests(Out, Extra, Remainder),
-        client_handler(Remainder-Tail, In, Out) )
-    ).
+    wait_for_input([In], Ready, 1.0),
+    ( exit_request_received
+    -> debug(server(high), "ending client handler loop", [])
+    ; ( Ready =@= []
+      -> client_handler(Extra-ExtraTail, In, Out)
+      ; fill_buffer(In),
+        read_pending_codes(In, ReadCodes, Tail),
+        ( Tail == []
+        -> true
+        ; ExtraTail = ReadCodes,
+          handle_requests(Out, Extra, Remainder),
+          client_handler(Remainder-Tail, In, Out) ) ) ).
 
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
@@ -131,11 +145,15 @@ send_message(Stream, Msg) :-
 handle_request(Req, OutStream) :-
     debug(server(high), "Request ~w", [Req.body]),
     catch_with_backtrace(
-        ( ( handle_msg(Req.body.method, Req.body, Resp)
-          -> true
-          ; throw(error(domain_error(handleable_message, Req),
-                        context(_Loc, "handle_msg/3 returned false"))) ),
-          ( is_dict(Resp) -> send_message(OutStream, Resp) ; true ) ),
+        ( ( shutdown_request_received
+          -> ( Req.body.method == "exit"
+             -> handle_msg(Req.body.method, Req.body, _Resp)
+             ; send_message(OutStream, _{id: Req.body.id, error: _{code: -32600, message: "Invalid Request"}}) )
+          ; ( handle_msg(Req.body.method, Req.body, Resp)
+            -> true
+            ; throw(error(domain_error(handleable_message, Req),
+                          context(_Loc, "handle_msg/3 returned false"))) ),
+            ( is_dict(Resp) -> send_message(OutStream, Resp) ; true ) ) ),
         Err,
         ( print_message(error, Err),
           get_dict(id, Req.body, Id),
@@ -193,9 +211,17 @@ handle_msg("initialize", Msg,
          maplist([F]>>assert(loaded_source(F)), Files) )
     ; true ),
     server_capabilities(ServerCapabilities).
-handle_msg("shutdown", Msg, _{id: Id, result: null}) :-
+handle_msg("shutdown", Msg, _{id: Id, result: []}) :-
     _{id: Id} :< Msg,
-    debug(server, "recieved shutdown message", []).
+    debug(server, "received shutdown message", []),
+    asserta(shutdown_request_received).
+handle_msg("exit", _Msg, false) :-
+    debug(server, "received exit, shutting down", []),
+    asserta(exit_request_received),
+    ( shutdown_request_received
+    -> debug(server, "Post-shutdown exit, okay", [])
+    ;  debug(server, "No shutdown, unexpected exit", []),
+       halt(1) ).
 handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
     _{params: _{position: _{character: Char0, line: Line0},
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
@@ -341,9 +367,6 @@ handle_msg("textDocument/didClose", Msg, false) :-
 handle_msg("initialized", Msg, false) :-
     debug(server, "initialized ~w", [Msg]).
 handle_msg("$/cancelRequest", _Msg, false).
-handle_msg("exit", _Msg, false) :-
-    debug(server, "recieved exit, shutting down", []),
-    halt.
 % wildcard
 handle_msg(_, Msg, _{id: Id, error: _{code: -32603, message: "Unimplemented"}}) :-
     _{id: Id} :< Msg, !,
