@@ -10,6 +10,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3, debug/1]).
 :- use_module(library(http/json), [atom_json_dict/3]).
+:- use_module(library(pio), [phrase_from_stream/2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
 :- use_module(library(utf8), [utf8_codes//1]).
@@ -63,7 +64,7 @@ stdio_server :-
     current_input(In),
     current_output(Out),
     stream_pair(StreamPair, In, Out),
-    handle_requests_stream(StreamPair).
+    handle_requests_stream(stdio, StreamPair).
 
 % socket server
 socket_server(Port) :-
@@ -75,6 +76,14 @@ socket_server(Port) :-
     dispatch_socket_client(AcceptFd).
 
 dispatch_socket_client(AcceptFd) :-
+    catch(call_with_time_limit(1, dispatch_socket_client_(AcceptFd)),
+          time_limit_exceeded,
+          true),
+    ( shutdown_request_received
+    -> debug(server(high), "Finished socket loop", [])
+    ; dispatch_socket_client(AcceptFd) ).
+
+dispatch_socket_client_(AcceptFd) :-
     tcp_accept(AcceptFd, Socket, Peer),
     % not doing this in a thread and not looping
     % since it doesn't really make sense to have multiple clients connected
@@ -84,46 +93,67 @@ process_client(Socket, Peer) :-
     setup_call_cleanup(
         tcp_open_socket(Socket, StreamPair),
         ( debug(server, "Connecting new client ~w", [Peer]),
-          handle_requests_stream(StreamPair) ),
+          handle_requests_stream(socket, StreamPair) ),
         close(StreamPair)).
 
 % common stream handler
 
-handle_requests_stream(StreamPair) :-
+handle_requests_stream(Provider, StreamPair) :-
     stream_pair(StreamPair, In, Out),
     set_stream(In, buffer(full)),
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
+    set_stream_encodings(Provider, In, Out),
+    client_handler(In, Out).
+
+set_stream_encodings(Provider, In, Out) :-
+    ( current_prolog_flag(windows, true) -> OS = windows ; OS = non_windows ),
+    set_stream_encodings_(OS, Provider, In, Out).
+
+% TODO: Solve Stream Encoding Problems
+%
+%     1. Windows does not allow setting encoding on `user_input` or
+%        `user_output`.
+%     2. Non-ascii characters cause `Content-Length` counts to be interpreted
+%        incorrectly.
+set_stream_encodings_(windows, stdio, _In, _Out) :-
+    % HACK: The `encoding` property of `user_input`/`user_output` cannot be set
+    % on Windows. For now skip, and hope user source files don't contain
+    % unhandlable unicode characters.
+    !.
+set_stream_encodings_(_OS, socket, In, Out) :-
     % handling UTF decoding in JSON parsing, but doing the auto-translation
     % causes Content-Length to be incorrect
     set_stream(In, encoding(octet)),
-    set_stream(Out, encoding(utf8)),
-    client_handler(A-A, In, Out).
-
-client_handler(Extra-ExtraTail, In, Out) :-
-    wait_for_input([In], Ready, 1.0),
-    ( exit_request_received
-    -> debug(server(high), "ending client handler loop", [])
-    ; ( Ready =@= []
-      -> client_handler(Extra-ExtraTail, In, Out)
-      ; fill_buffer(In),
-        read_pending_codes(In, ReadCodes, Tail),
-        ( Tail == []
-        -> true
-        ; ExtraTail = ReadCodes,
-          handle_requests(Out, Extra, Remainder),
-          client_handler(Remainder-Tail, In, Out) ) ) ).
+    set_stream(Out, encoding(utf8)).
 
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
-handle_requests(Out, In, Tail) :-
-    phrase(lsp_request(Req), In, Rest), !,
-    ignore(handle_request(Req, Out)),
-    ( var(Rest)
-    -> Tail = Rest
-    ; handle_requests(Out, Rest, Tail) ).
-handle_requests(_, T, T).
+client_handler(In, Out) :-
+    catch(read_requests_from_stream(In, Out),
+          break_unlimited,
+          debug(server(high), "ending client handler loop", [])).
+
+read_requests_from_stream(In, Out) :-
+    % Parse an unlimited number of requests from the input stream, responding
+    % to each one as it is received.
+    phrase_from_stream(unlimited(request_and_response(Out)), In).
+
+request_and_response(Out) -->
+    % Parse an LSP request from the input stream
+    (  lsp_request(Req)
+    -> % As a side effect, respond to the request
+       { ignore(handle_request(Req, Out)) }
+    ;  % Failure of `lsp_request//1` indicates an unparsable RPC request
+       { debug(server(high), "unparsable RPC request", []),
+         send_message(Out, _{id: null,
+                             error: _{code: -32700, % JSON RPC ParseError
+                                      message: "unparsable request"}}),
+         % Since `Content-Length` may not have parsed correctly, we don't know
+         % how much input to skip. Probably safest to shutdown or at least ask
+         % socket clients to reconnect.
+         throw(break_unlimited) } ).
 
 % general handling stuff
 

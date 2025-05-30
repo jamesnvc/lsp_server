@@ -7,7 +7,8 @@
                       clause_variable_positions/3,
                       seek_to_line/2,
                       linechar_offset/3,
-                      url_path/2
+                      url_path/2,
+                      unlimited//1
                      ]).
 /** <module> LSP Utils
 
@@ -380,3 +381,10 @@ find_containing_term(Offset, [Dict|_], [DP|_], Term, P) :-
     find_containing_term(Offset, [Value], [ValuePos], Term, P).
 find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
     find_containing_term(Offset, Ts, Ps, T, P).
+
+:- meta_predicate unlimited(//, *, *).
+
+unlimited(Nonterminal) -->
+    call(Nonterminal),
+    unlimited(Nonterminal).
+
