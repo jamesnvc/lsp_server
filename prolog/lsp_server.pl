@@ -85,8 +85,9 @@ dispatch_socket_client(AcceptFd) :-
 
 dispatch_socket_client_(AcceptFd) :-
     tcp_accept(AcceptFd, Socket, Peer),
-    thread_create(process_client(Socket, Peer), _, [detached(true)]),
-    dispatch_socket_client(AcceptFd).
+    % not doing this in a thread and not looping
+    % since it doesn't really make sense to have multiple clients connected
+    process_client(Socket, Peer).
 
 process_client(Socket, Peer) :-
     setup_call_cleanup(
