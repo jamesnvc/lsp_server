@@ -146,10 +146,14 @@ request_and_response(Out) -->
     -> % As a side effect, respond to the request
        { ignore(handle_request(Req, Out)) }
     ;  % Failure of `lsp_request//1` indicates an unparsable RPC request
-       { debug(server(high), "unparsable RPC request"),
+       { debug(server(high), "unparsable RPC request", []),
          send_message(Out, _{id: null,
                              error: _{code: -32700, % JSON RPC ParseError
-                                      message: "unparsable request"}}) } ).
+                                      message: "unparsable request"}}),
+         % Since `Content-Length` may not have parsed correctly, we don't know
+         % how much input to skip. Probably safest to shutdown or at least ask
+         % socket clients to reconnect.
+         throw(break_unlimited) } ).
 
 % general handling stuff
 
