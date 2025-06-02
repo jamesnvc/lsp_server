@@ -131,6 +131,9 @@ term_matches_callable_(State, Path, _, _, Term, Position) :-
     nb_setarg(1, State, in_meta(N, Start, End)),
     fail.
 
+%! url_path(?FileUrl:atom, ?Path:atom) is det.
+%
+%  Convert between file:// url and path
 url_path(Url, Path) :-
     current_prolog_flag(windows, true),
     % on windows, in neovim at least, textDocument URI looks like
