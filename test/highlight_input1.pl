@@ -139,4 +139,9 @@ foo(A, B, C, D, E) :-
       -> D = 4
       ; E = 5 ) ).
 
+hello(X) :-
+    Aa = foo,
+    Bb = bar,
+    X = Aa:Bb.
+
 % end comment

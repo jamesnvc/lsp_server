@@ -81,4 +81,16 @@ test('Highlighting asking for a variable on a comment should fail',
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     lsp_highlights:highlights_at_position(InputFile, line_char(130, 14), '$var'(_), _).
 
+test('Highlighting issue with compound',
+     [ true(Leaf-Highlights =@= '$var'('Bb')-[
+                _{range:_{start:_{line: 143, character: 4},
+                          end:_{line: 143, character: 6}}},
+                _{range:_{start:_{line: 144, character: 11},
+                          end:_{line: 144, character: 13}}}]) ]) :-
+    module_property(formatter_t, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
+    lsp_highlights:highlights_at_position(InputFile, line_char(145, 11), Leaf, Highlights).
+
+
+
 :- end_tests(highlights).
