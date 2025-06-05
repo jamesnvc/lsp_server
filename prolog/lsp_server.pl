@@ -64,7 +64,7 @@ stdio_server :-
     current_input(In),
     current_output(Out),
     stream_pair(StreamPair, In, Out),
-    handle_requests_stream(stdio, StreamPair).
+    handle_requests_stream(StreamPair).
 
 % socket server
 socket_server(Port) :-
@@ -79,9 +79,9 @@ dispatch_socket_client(AcceptFd) :-
     catch(call_with_time_limit(1, dispatch_socket_client_(AcceptFd)),
           time_limit_exceeded,
           true),
-    ( shutdown_request_received
+    (  shutdown_request_received
     -> debug(server(high), "Finished socket loop", [])
-    ; dispatch_socket_client(AcceptFd) ).
+    ;  dispatch_socket_client(AcceptFd) ).
 
 dispatch_socket_client_(AcceptFd) :-
     tcp_accept(AcceptFd, Socket, Peer),
@@ -93,7 +93,7 @@ process_client(Socket, Peer) :-
     setup_call_cleanup(
         tcp_open_socket(Socket, StreamPair),
         ( debug(server, "Connecting new client ~w", [Peer]),
-          handle_requests_stream(socket, StreamPair) ),
+          handle_requests_stream(StreamPair) ),
         close(StreamPair)).
 
 % common stream handler
