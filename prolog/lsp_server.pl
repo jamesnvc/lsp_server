@@ -76,14 +76,6 @@ socket_server(Port) :-
     dispatch_socket_client(AcceptFd).
 
 dispatch_socket_client(AcceptFd) :-
-    catch(call_with_time_limit(1, dispatch_socket_client_(AcceptFd)),
-          time_limit_exceeded,
-          true),
-    (  shutdown_request_received
-    -> debug(server(high), "Finished socket loop", [])
-    ;  dispatch_socket_client(AcceptFd) ).
-
-dispatch_socket_client_(AcceptFd) :-
     tcp_accept(AcceptFd, Socket, Peer),
     % not doing this in a thread and not looping
     % since it doesn't really make sense to have multiple clients connected
