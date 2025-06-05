@@ -20,9 +20,29 @@ Installable as a pack with ~swipl pack install lsp_server~ or ~?- pack_install(l
 
 As of version 2.5.0, running the server over a socket is now supported by passing in the commandline arguments ~port <port number>~ (instead of ~stdio~).
 
+If running on Windows directly (i.e. not via WSL) running the server via stdio will NOT work and you will need to run the server over a socket, so please consult that section of the documention for your editor..
+
 * Emacs
 
 **  [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]:
+
+*** socket server
+
+#+begin_src emacs-lisp
+(lsp-register-client
+  (make-lsp-client
+   :new-connection
+   (lsp-tcp-connection (lambda (port) (list "swipl"
+                                    "-g" "use_module(library(lsp_server))."
+                                    "-g" "lsp_server:main"
+                                    "-t" "halt"
+                                    "--" "port" port)))
+   :major-modes '(prolog-mode)
+   :priority 1
+   :multi-root t
+   :server-id 'prolog-ls))
+#+end_src
+*** stdio server
 
 #+begin_src emacs-lisp
 (lsp-register-client
@@ -40,7 +60,7 @@ As of version 2.5.0, running the server over a socket is now supported by passin
 #+end_src
 
 ** [[https://github.com/joaotavora/eglot][eglot]]
-
+*** socket server
 #+begin_src emacs-lisp
 (setopt eglot-server-programs (cons
                                  (cons 'prolog-mode
@@ -53,24 +73,24 @@ As of version 2.5.0, running the server over a socket is now supported by passin
                                  eglot-server-programs))
 #+end_src
 
-* Vim/Neovim
-
-**  [[https://github.com/autozimu/LanguageClient-neovim][LanguageClient]]:
-
-#+begin_src viml
-let g:LanguageClient_serverCommands = {
-\ 'prolog': ['swipl',
-\            '-g', 'use_module(library(lsp_server)).',
-\            '-g', 'lsp_server:main',
-\            '-t', 'halt',
-\            '--', 'stdio']
-\ }
+*** stdio server
+#+begin_src emacs-lisp
+(setopt eglot-server-programs (cons
+                                 (cons 'prolog-mode
+                                       (list "swipl"
+                                             "-O"
+                                             "-g" "use_module(library(lsp_server))."
+                                             "-g" "lsp_server:main"
+                                             "-t" "halt"
+                                             "--" "stdio"))
+                                 eglot-server-programs))
 #+end_src
 
+* Vim/Neovim
+
 * Neovim
-
 ** [[https://github.com/neoclide/coc.nvim][CoC]]
-
+*** stdio server
 Put the following in ~coc-settings.json~ (which you can access by using the command ~:CocConfig~).
 
 #+begin_src json
@@ -86,9 +106,34 @@ Put the following in ~coc-settings.json~ (which you can access by using the comm
   }}
 }
 #+end_src
+*** socket server
+
+CoC does not support automatically starting a socket server.
+If you are on Windows and using CoC and hence need a socket server, you'll have to manually start the LSP process by running the following command:
+
+#+begin_src sh
+swipl -g 'use_module(library(lsp_server))' -g 'lsp_server:main' -t halt -- port 12345
+#+end_src
+
+Where "12345" is an arbitrary, free port number.
+
+Then, with that started, add the following to ~coc-settings.json~ (accessed via ~:CocConfig~).
+
+#+begin_src json
+{"languageserver": {
+  "prolog-lsp": {
+    "host": "127.0.0.1",
+    "port": 12345,
+    "filetypes": ["prolog"]
+  }}
+}
+#+end_src
+
+Ensuring the port entered in the config is the same one used when starting the server process
 
 ** Native LSP (for Neovim >= 0.11)
 
+*** stdio server
 Put the following in ~$XDG_CONFIG_DIR/nvim/lsp/prolog.lua~:
 
 #+begin_src lua
@@ -98,6 +143,32 @@ return {
            '-g', 'lsp_server:main',
            '-t', 'halt',
            '--', 'stdio' },
+   root_markers = { '.git', },
+   filetypes = { 'prolog' },
+}
+#+end_src
+
+And add ~vim.lsp.enable({'prolog'})~ to ~$XDG_CONFIG_DIR/nvim/init.lua~.
+
+*** socket server
+Put the following in ~$XDG_CONFIG_DIR/nvim/lsp/prolog.lua~:
+
+#+begin_src lua
+return {
+   cmd = function(...)
+     local server_port = 9876 -- change this if needed
+     vim.system({'swipl',
+                 '-g', 'use_module(library(lsp_server))',
+                 '-g', 'lsp_server:main',
+                 '-t', 'halt',
+                 '--', 'port', server_port},
+        {},
+        function(...)
+           print("LSP PROCESS EXITED", ...)
+     end)
+     vim.uv.sleep(500)
+     return vim.lsp.rpc.connect('127.0.0.1', server_port)(...)
+   end,
    root_markers = { '.git', },
    filetypes = { 'prolog' },
 }
@@ -147,6 +218,7 @@ EOF
 
 * LazyVim
 
+** stdio
 Create the following file in ~$XDG_CONFIG_DIR/nvim/lua/plugins/lsp.lua~
 
 #+begin_src lua

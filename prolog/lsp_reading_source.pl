@@ -249,44 +249,51 @@ find_in_term_subterm(Needle, Term, Arg, [Position|Positions], Matches, Tail) :-
     find_in_term_with_positions(Needle, SubTerm, Position, Matches, Matches0),
     find_in_term_subterm(Needle, Term, NextArg, Positions, Matches0, Tail).
 
+%! between_semi(?Low:integer, ?High:integer, ?X:integer) is semidet.
+%
+%  Like between/3, except with a semi-closed interval, not including =High=.
+between_semi(Lo, High, X) :-
+    HighInc #= High - 1,
+    between(Lo, HighInc, X).
+
 %! subterm_leaf_position(+Term, +Offset, +SubTermPoses, ?Leaf) is semidet.
-subterm_leaf_position(Term, Offset, From-To, Term) :- between(From, To, Offset), !.
+subterm_leaf_position(Term, Offset, From-To, Term) :- between_semi(From, To, Offset), !.
 subterm_leaf_position(Term, Offset, term_position(_, _, FFrom, FTo, _), Term) :-
-    between(FFrom, FTo, Offset), !.
+    between_semi(FFrom, FTo, Offset), !.
 subterm_leaf_position(Term, Offset, term_position(From, To, _, _, Subterms), Leaf) :-
-    between(From, To, Offset), !,
+    between_semi(From, To, Offset), !,
     functor(Term, _, Arity, _),
     between(1, Arity, Arg),
     arg(Arg, Term, Subterm),
     nth1(Arg, Subterms, SubtermPos),
     subterm_leaf_position(Subterm, Offset, SubtermPos, Leaf), !.
 subterm_leaf_position(Term, Offset, list_position(From, To, Elms, _), Leaf) :-
-    between(From, To, Offset),
+    between_semi(From, To, Offset),
     length(Elms, NElms),
     between(1, NElms, Idx),
     nth1(Idx, Term, Elm),
     nth1(Idx, Elms, ElmPos),
     subterm_leaf_position(Elm, Offset, ElmPos, Leaf), !.
 subterm_leaf_position(Term, Offset, list_position(From, To, Elms, TailPos), Leaf) :-
-    between(From, To, Offset), TailPos \= none, !,
+    between_semi(From, To, Offset), TailPos \= none, !,
     length(Elms, NElms),
     length(Head, NElms),
     append(Head, Tail, Term),
     subterm_leaf_position(Tail, Offset, TailPos, Leaf), !.
 subterm_leaf_position(Term, Offset, brace_term_position(From, To, BracesPos), Leaf) :-
-    between(From, To, Offset), !,
+    between_semi(From, To, Offset), !,
     Term = {Term0},
     subterm_leaf_position(Term0, Offset, BracesPos, Leaf).
 subterm_leaf_position(Term, Offset, parentheses_term_position(From, To, ContentPos), Leaf) :-
-    between(From, To, Offset), !,
+    between_semi(From, To, Offset), !,
     subterm_leaf_position(Term, Offset, ContentPos, Leaf).
 subterm_leaf_position(Term, Offset, dict_position(_From, _To, TagFrom, TagTo, _KVPoses), Leaf) :-
-    between(TagFrom, TagTo, Offset), !,
+    between_semi(TagFrom, TagTo, Offset), !,
     is_dict(Term, Leaf).
 subterm_leaf_position(Term, Offset, dict_position(From, To, _TagFrom, _TagTo, KVPoses), Leaf) :-
-    between(From, To, Offset), !,
+    between_semi(From, To, Offset), !,
     member(key_value_position(KVFrom, KVTo, _SF, _ST, Key, _KeyPos, ValuePos), KVPoses),
-    between(KVFrom, KVTo, Offset), !,
+    between_semi(KVFrom, KVTo, Offset), !,
     % keys of a literal dict aren't of interest, I think?
     get_dict(Key, Term, Value),
     subterm_leaf_position(Value, Offset, ValuePos, Leaf).

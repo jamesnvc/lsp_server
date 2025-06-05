@@ -132,6 +132,9 @@ term_matches_callable_(State, Path, _, _, Term, Position) :-
     nb_setarg(1, State, in_meta(N, Start, End)),
     fail.
 
+%! url_path(?FileUrl:atom, ?Path:atom) is det.
+%
+%  Convert between file:// url and path
 url_path(Url, Path) :-
     current_prolog_flag(windows, true),
     % on windows, in neovim at least, textDocument URI looks like
@@ -230,9 +233,9 @@ format_help(HelpFull, Help) :-
     split_string(HelpFull, "\n", " ", Lines0),
     exclude([Line]>>string_concat("Availability: ", _, Line),
             Lines0, Lines1),
-    exclude([""]>>true, Lines1, Lines2),
+    exclude(=(""), Lines1, Lines2),
     Lines2 = [HelpShort|_],
-    split_string(HelpFull, "\n", "", HelpLines),
+    split_string(HelpFull, "\n", " ", HelpLines),
     selectchk(HelpShort, HelpLines, "", HelpLines0),
     append([HelpShort], HelpLines0, HelpLines1),
     atomic_list_concat(HelpLines1, "\n", Help).

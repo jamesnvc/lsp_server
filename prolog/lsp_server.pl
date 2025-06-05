@@ -271,15 +271,16 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
     succ(Line0, Line1),
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     findall(
-        Locations,
+        Location,
         ( loaded_source(Doc),
           url_path(DocUri, Doc),
           called_at(Doc, Clause, Locs0),
           % handle the case where Caller = imported(Path)?
-          maplist([D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locations)
+          maplist([D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locs1),
+          member(Location, Locs1)
         ),
-        LLocations), !,
-    append(LLocations, Locations).
+        Locations0), !,
+    ordered_locations(Locations0, Locations).
 handle_msg("textDocument/references", Msg, _{id: Msg.id, result: null}) :- !.
 handle_msg("textDocument/completion", Msg, _{id: Id, result: Completions}) :-
     _{id: Id, params: Params} :< Msg,
@@ -398,3 +399,15 @@ edit_in_range(Range, Edit) :-
     ; ( REndLine == EEndLine
       -> REndChar >= EEndChar
       ; true ) ).
+
+%! ordered_locations(+Locations:list(dict), +Locations:list(dict)) is det.
+%
+%  Sort range dictionaries into ascending order of start line.
+ordered_locations(Locations, OrderedLocations) :-
+    maplist([D, SL-D]>>( get_dict(range, D, Range),
+                         get_dict(start, Range, Start),
+                         get_dict(line, Start, SL) ),
+            Locations,
+            Locs1),
+    sort(1, @=<, Locs1, Locs2),
+    maplist([_-D, D]>>true, Locs2, OrderedLocations).
