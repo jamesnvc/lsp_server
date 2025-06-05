@@ -98,35 +98,17 @@ process_client(Socket, Peer) :-
 
 % common stream handler
 
-handle_requests_stream(Provider, StreamPair) :-
+handle_requests_stream(StreamPair) :-
     stream_pair(StreamPair, In, Out),
     set_stream(In, buffer(full)),
     set_stream(In, newline(posix)),
     set_stream(In, tty(false)),
     set_stream(In, representation_errors(error)),
-    set_stream_encodings(Provider, In, Out),
-    client_handler(In, Out).
-
-set_stream_encodings(Provider, In, Out) :-
-    ( current_prolog_flag(windows, true) -> OS = windows ; OS = non_windows ),
-    set_stream_encodings_(OS, Provider, In, Out).
-
-% TODO: Solve Stream Encoding Problems
-%
-%     1. Windows does not allow setting encoding on `user_input` or
-%        `user_output`.
-%     2. Non-ascii characters cause `Content-Length` counts to be interpreted
-%        incorrectly.
-set_stream_encodings_(windows, stdio, _In, _Out) :-
-    % HACK: The `encoding` property of `user_input`/`user_output` cannot be set
-    % on Windows. For now skip, and hope user source files don't contain
-    % unhandlable unicode characters.
-    !.
-set_stream_encodings_(_OS, socket, In, Out) :-
     % handling UTF decoding in JSON parsing, but doing the auto-translation
     % causes Content-Length to be incorrect
     set_stream(In, encoding(octet)),
-    set_stream(Out, encoding(utf8)).
+    set_stream(Out, encoding(utf8)),
+    client_handler(In, Out).
 
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
