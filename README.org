@@ -154,16 +154,16 @@ And add ~vim.lsp.enable({'prolog'})~ to ~$XDG_CONFIG_DIR/nvim/init.lua~.
 Put the following in ~$XDG_CONFIG_DIR/nvim/lsp/prolog.lua~:
 
 #+begin_src lua
+local find_port = function()
+   local uv = vim.uv
+   local tcp = uv.new_tcp()
+   tcp:bind("127.0.0.1", 0)
+   local port = tcp:getsockname().port
+   tcp:close_reset()
+   return port
+end
 return {
    cmd = function(...)
-      local find_port = function()
-         local uv = vim.uv
-         local tcp = uv.new_tcp()
-         tcp:bind("127.0.0.1", 0)
-         local port = tcp:getsockname().port
-         tcp:close_reset()
-         return port
-      end
       local server_port = find_port()
       vim.system({'swipl',
                   '-g', 'use_module(library(lsp_server))',
