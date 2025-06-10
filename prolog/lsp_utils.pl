@@ -5,7 +5,7 @@
                       help_at_position/4,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
-                      clause_import_position/4,
+                      usemod_filespec_position/4,
                       seek_to_line/2,
                       linechar_offset/3,
                       url_path/2
@@ -312,7 +312,7 @@ clause_variable_positions(Path, Line, Variables) :-
         ),
         Variables).
 
-clause_import_position(Path, Line, Pattern, Position) :-
+usemod_filespec_position(Path, Line, FileSpec, Position) :-
     file_lines_start_end(Path, LineCharRange),
     read_term_positions(Path, TermsWithPositions),
     % find the top-level term that the offset falls within
@@ -323,59 +323,33 @@ clause_import_position(Path, Line, Pattern, Position) :-
     arg(2, SubTermPoses, TermTo),
     between(TermFrom, TermTo, Offset), !,
     find_in_term_with_positions(
-        {Pattern}/[Term, _]>>(
-            ( Term = ( :- use_module(Pattern) ) -> true
-            ; Term = ( :- use_module(Pattern, _) )
-            )
-        ),
+        {FileSpec}/[Term, _]>>once(matches_use_module(FileSpec, Term)),
         TermInfo.term,
         TermInfo.subterm,
         Positions,
-        []
-    ),
+        [] ),
     member(
-        found_at(
-            _Term,
+        found_at(_Term,
             term_position(_, _, _, _, [ % :- ...
                 term_position(_, _, _, _, [ % use_module(...)
-                    SpecPos | _Rest
-                ]) 
-            ])
-        ),
+                    SpecPos | _Rest])])),
         Positions
     ),
     termpos_start_end(SpecPos, Start, End),
-
-        %     [found_at((:-use_module(library(qwerty), [x/1])),
-        %     term_position(232, 269, 232, 234, [ % :- ...
-        %         term_position(235, 269, 235, 245, [ % use_module(...)
-        %             term_position(246, 261, 246, 253, [254-260]), % library(qwerty)
-        %             list_position(263, 268, [
-        %                 term_position(264, 267, 265, 266, [264-265, 266-267]) % x/1
-        %             ], none)
-        %         ])
-        %     ]))
-        % ])
-
-    % member(found_at(use_module(_58), _70352-_70354),
-    % [found_at(use_module(derive), term_position(61, 79, 61, 71, [72-78]))])
-
-    %file_offset_line_position(LineCharRange, Location0, L1, C),
-    %succ(L0, L1),
-    %Position = position(L0, C).
     file_offset_line_position(LineCharRange, Start, StartLine1, StartCol),
     file_offset_line_position(LineCharRange, End, EndLine1, EndCol),
     succ(StartLine, StartLine1),
     succ(EndLine, EndLine1),
     Position = _{start: _{line: StartLine, character: StartCol},
-                 end:   _{line: EndLine,   character: EndCol}}.
+                 end:   _{line: EndLine,   character: EndCol  } }.
+
+matches_use_module(FileSpec, ( :- use_module(FileSpec) )).
+matches_use_module(FileSpec, ( :- use_module(FileSpec, _) )).
 
 termpos_start_end(From-To, From, To) :- !. % Primitive types (atoms, numbers, variables)
 termpos_start_end(Term, From, To) :-
     arg(1, Term, From),
     arg(2, Term, To).
-    
-termpos_start_end(list_position(From, To, _Elems, _Tail), From, To).
 
 clause_in_file_at_position(Clause, Path, Position) :-
     xref_source(Path),
