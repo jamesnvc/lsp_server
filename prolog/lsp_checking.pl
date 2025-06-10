@@ -17,7 +17,7 @@ Module for checking Prolog source files for errors and warnings.
 
 :- include('_lsp_path_add.pl').
 :- use_module(lsp(lsp_utils), [clause_variable_positions/3,
-                               clause_import_position/4]).
+                               usemod_filespec_position/4]).
 
 :- dynamic user:thread_message_hook/3.
 :- multifile user:thread_message_hook/3.
@@ -43,45 +43,32 @@ check_errors(Path, Errors) :-
     nb_getval(checking_errors, ErrList),
     once(phrase(expand_errors(Path, ErrList), Errors)).
 
-blah(VarPoses, VarName) -->
-    {
-        atom_length(VarName, VarLen),
-        get_assoc(VarName, VarPoses, [position(Line, Char)]),
-        EndChar is Char + VarLen,
-        format(string(Msg), "Singleton variable ~w", [VarName])
-    },
+singleton_warning_response(VarPoses, VarName) -->
+    { atom_length(VarName, VarLen),
+      get_assoc(VarName, VarPoses, [position(Line, Char)]),
+      EndChar is Char + VarLen,
+      format(string(Msg), "Singleton variable ~w", [VarName]) },
     [ _{severity: 2,
         source: "prolog_xref",
         range: _{start: _{line: Line, character: Char},
-                end:   _{line: Line, character: EndChar}},
+                 end:   _{line: Line, character: EndChar}},
         message: Msg
     } ].
 
-expand_errors(
-    Path,
-    [e(singletons(_, SingletonVars), warning, _, ClauseLine, _)|InErrs]
-) --> !,
-    {
-        clause_variable_positions(Path, ClauseLine, VariablePoses),
-        list_to_assoc(VariablePoses, VarPoses)
-    },
-    sequence(blah(VarPoses), SingletonVars),
+expand_errors(Path, [e(singletons(_, SingletonVars), warning, _, ClauseLine, _)
+                    |InErrs]) --> !,
+    { clause_variable_positions(Path, ClauseLine, VariablePoses),
+      list_to_assoc(VariablePoses, VarPoses) },
+    sequence(singleton_warning_response(VarPoses), SingletonVars),
     expand_errors(Path, InErrs).
-expand_errors(
-    Path,
-    [e(error(existence_error(file, FileSpec), _), _Kind, _Lines, Line, _Char)|InErrs]
-) --> !,
-    {
-        clause_import_position(Path, Line, FileSpec, Span),
-        format(string(Msg), "Existence error for file `~p`", [FileSpec])
-    },
+expand_errors(Path, [e(error(existence_error(file, FileSpec), _),
+                       _Kind, _Lines, Line, _Char) | InErrs]) --> !,
+    { usemod_filespec_position(Path, Line, FileSpec, Span),
+      format(string(Msg), "The file specified by `~p` cannot be located.", [FileSpec]) },
     [ _{severity: 2,
         source: "prolog_xref",
         range: Span,
-        % range: _{start: _{line: StartLine, character: Char},
-        %          end:   _{line: StartLine, character: EndChar}},
-        message: Msg
-    } ],
+        message: Msg } ],
     expand_errors(Path, InErrs).
 expand_errors(Path, [e(_, silent, _, _, _)|InErrs]) --> !,
     expand_errors(Path, InErrs).
@@ -91,8 +78,7 @@ expand_errors(Path, [e(_Term, error, Lines, _, _)|InErrs]) -->
     { Msg0 = Fmt-Params
     -> format(string(Msg), Fmt, Params)
     ;  text_to_string(Msg0, Msg),
-       succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 )
-    },
+       succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ) },
     [_{severity: 1,
        source: "prolog_xref",
        range: _{start: _{line: Line0, character: Col0},
@@ -101,14 +87,12 @@ expand_errors(Path, [e(_Term, error, Lines, _, _)|InErrs]) -->
     }],
     expand_errors(Path, InErrs).
 expand_errors(Path, [e(_Term, Kind, Lines, _, _)|InErr]) -->
-    {
-        kind_level(Kind, Level),
-        Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
-        maplist(expand_error_message, Msgs0, Msgs),
-        atomic_list_concat(Msgs, Msg),
-        succ(Line0, Line1),
-        ( succ(Char0, Char1) ; Char0 = 0 )
-    },
+    { kind_level(Kind, Level),
+      Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
+      maplist(expand_error_message, Msgs0, Msgs),
+      atomic_list_concat(Msgs, Msg),
+      succ(Line0, Line1),
+      ( succ(Char0, Char1) ; Char0 = 0 ) },
     [_{severity: Level,
        source: "prolog_xref",
        range: _{start: _{line: Line0, character: Char0},
