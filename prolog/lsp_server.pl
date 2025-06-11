@@ -10,7 +10,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3, debug/1]).
 :- use_module(library(http/json), [atom_json_dict/3]).
-:- use_module(library(pio), [phrase_from_stream/2]).
+:- use_module(library(pure_input), [phrase_from_stream/2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
 :- use_module(library(utf8), [utf8_codes//1]).
@@ -105,11 +105,11 @@ handle_requests_stream(StreamPair) :-
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
 client_handler(In, Out) :-
-    catch(read_requests_from_stream(In, Out),
+    catch(handle_requests(In, Out),
           break_unlimited,
           debug(server(high), "ending client handler loop", [])).
 
-read_requests_from_stream(In, Out) :-
+handle_requests(In, Out) :-
     % Parse an unlimited number of requests from the input stream, responding
     % to each one as it is received.
     phrase_from_stream(unlimited(request_and_response(Out)), In).
@@ -125,8 +125,8 @@ request_and_response(Out) -->
                              error: _{code: -32700, % JSON RPC ParseError
                                       message: "unparsable request"}}),
          % Since `Content-Length` may not have parsed correctly, we don't know
-         % how much input to skip. Probably safest to shutdown or at least ask
-         % socket clients to reconnect.
+         % how much input to skip. Probably safest to shutdown (stdio server)
+         % or at least ask socket clients to reconnect.
          throw(break_unlimited) } ).
 
 % general handling stuff

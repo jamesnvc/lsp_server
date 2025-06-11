@@ -387,6 +387,13 @@ find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
 
 :- meta_predicate unlimited(//, *, *).
 
+%! unlimited(:Nonterminal)// is semidet.
+%
+% Tries to parse =Nonterminal= an unlimited number of times. If the provided
+% nonterminal ever fails, =unlimited= fails too. This rule can never actually
+% succeed (i.e. yield =true=), although it could be considered to succeed "at
+% infinity." =Nonterminal= is likely to be a DCG rule which performs side
+% effects as it parses.
 unlimited(Nonterminal) -->
     call(Nonterminal),
     unlimited(Nonterminal).
