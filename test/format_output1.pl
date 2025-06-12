@@ -195,4 +195,9 @@ add_use_if_needed__(LastModuleAt, AlreadyImported, Stream, Path, Module, Predica
     Term = end_of_file,
     true.
 
+this(A, B) :-
+    (call(A)
+    -> call(B)
+    ; A = B).
+
 % end comment

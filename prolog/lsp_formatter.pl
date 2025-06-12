@@ -38,7 +38,8 @@ apply_format_rules(Content, Formatted) :-
 formatter_rules -->
     collapse_whitespace,
     commas_exactly_one_space,
-    correct_indentation(_{state: [toplevel], column: 0, leading_spaces: []}).
+    correct_indentation(_{state: [toplevel], column: 0, leading_spaces: [],
+                          parens: []}).
 
 collapse_whitespace([], []) :- !.
 collapse_whitespace([white(A), white(B)|InRest], [white(AB)|OutRest]) :- !,
@@ -102,7 +103,7 @@ correct_indentation(State0, [In|InRest], Out) :-
         ; In = term_begin(';', compound, false))),
     indent_state_top(State0, defn_body_indent), !,
     indent_state_pop(State0, State1),
-    outdent_align(State1, Indent),
+    paren_state_top(State1, Indent),
     Out = [white(Indent)|OutRest],
     update_state_column(State1, white(Indent), State4),
     correct_indentation(State4, [In|InRest], OutRest).
@@ -134,7 +135,10 @@ correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     update_state_column(State1, In, State2),
     indent_state_push(State2, begin(State2.column, State1.column), State3),
     push_state_open_spaces(State3, InRest, State4),
-    correct_indentation(State4, InRest, OutRest).
+    ( Name == parens_begin
+    -> paren_state_push(State4, State1.column, State5)
+    ;  State5 = State4 ),
+    correct_indentation(State5, InRest, OutRest).
 correct_indentation(State0, [In|InRest], [In|OutRest]) :-
     indent_state_top(State0, defn_head(_, _)),
     In = term_end(_, S), S \= toplevel, !,
@@ -151,7 +155,10 @@ correct_indentation(State0, [In|InRest], Out) :-
     ( In \= term_end(false, _), In \= term_end(_, toplevel), Spaces > 0
     -> Out = [white(Spaces), In|OutRest]
     ;  Out = [In|OutRest] ),
-    correct_indentation(State3, InRest, OutRest).
+    ( In == parens_end
+    -> paren_state_pop(State3, State4)
+    ;  State3 = State4 ),
+    correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In, NextIn|InRest], Out) :-
     In = white(_),
     ending_term(NextIn), !,
@@ -273,6 +280,17 @@ indent_state_top(State, Top) :-
 indent_state_contains(State, Needle) :-
     _{state: Stack} :< State,
     memberchk(Needle, Stack).
+
+paren_state_push(State0, NewTop, State1) :-
+    _{parens: OldParens} :< State0,
+    put_dict(parens, State0, [NewTop|OldParens], State1).
+
+paren_state_pop(State0, State1) :-
+    _{parens: [_|Parens]} :< State0,
+    put_dict(parens, State0, Parens, State1).
+
+paren_state_top(State0, Top) :-
+    _{parens: [Top|_]} :< State0.
 
 indent_state_push(State0, NewTop, State1) :-
     _{state: Stack} :< State0,
