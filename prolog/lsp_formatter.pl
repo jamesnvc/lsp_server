@@ -98,6 +98,7 @@ correct_indentation(State0,
     correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], Out) :-
     once((In = term_begin('->', compound, false)
+        ; In = term_begin('*->', compound, false)
         ; In = term_begin(';', compound, false))),
     indent_state_top(State0, defn_body_indent), !,
     indent_state_pop(State0, State1),

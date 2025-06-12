@@ -142,6 +142,15 @@ foo(A, B, C, D, E, F) :-
         -> E = 5
         ;  F = 7 ) ) ).
 
+soft_foo(A, B, C, D, E, F) :-
+    ( A = 1
+    *-> B = 2
+    ; ( C = 3
+      *-> D = 4
+      ; ( A =:= 1
+        *-> E = 5
+        ;  F = 7 ) ) ).
+
 testing_dict_formatting(A) :-
     findall(B,
             ( Foo = _{x: 1,
