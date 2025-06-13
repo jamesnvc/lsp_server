@@ -59,8 +59,8 @@ error_expansion(Path, e(singletons(_, SingletonVars), warning, _, ClauseLine, _)
     { clause_variable_positions(Path, ClauseLine, VariablePoses),
       list_to_assoc(VariablePoses, VarPoses) },
     sequence(singleton_warning_response(VarPoses), SingletonVars).
-error_expansion(Path, e(Err, _Kind, _Lines, Line, _Char)) -->
-    { Err = error(existence_error(file, FileSpec), _) },
+error_expansion(Path, e(Term, warning, _Lines, Line, _Char)) -->
+    { Term = error(existence_error(file, FileSpec), _) },
     !,
     { usemod_filespec_position(Path, Line, FileSpec, Span),
       format(string(Msg), "The file specified by `~p` cannot be located.", [FileSpec]) },
