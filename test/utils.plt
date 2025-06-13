@@ -31,7 +31,8 @@ test('Basic finding',
                             _{range: _{start: _{line: 36, character: 4},
                                        end: _{line: 36, character: 29}}}
                            ] ) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
     setup_call_cleanup(
         xref_source(InputFile),
@@ -45,7 +46,8 @@ test('Finding called-by from meta-calls',
                                        end: _{line: 20, character: 25}}},
                             _{range: _{start: _{line: 25, character: 12},
                                        end: _{line: 25, character: 30}}}] ) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
     setup_call_cleanup(
         xref_source(InputFile),
@@ -61,7 +63,8 @@ test('finding dcg',
                                        end: _{line: 20, character: 10}}},
                             _{range: _{start: _{line: 23, character: 18},
                                        end: _{line: 23, character: 24}}}] ) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './utils_input2.pl'),
     setup_call_cleanup(
         xref_source(InputFile),

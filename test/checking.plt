@@ -27,7 +27,8 @@ test('Errors for test file',
                            range: _{start: _{line: 4, character: 11}, end: _{line: 4, character: 12}},
                            severity: 2,
                            source: "prolog_xref"}] ) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './checking_input1.pl'),
     check_errors(InputFile, Errors).
 
