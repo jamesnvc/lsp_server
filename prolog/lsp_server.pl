@@ -216,7 +216,8 @@ handle_msg("exit", _Msg, false) :-
     debug(server, "received exit, shutting down", []),
     asserta(exit_request_received),
     ( shutdown_request_received
-    -> debug(server, "Post-shutdown exit, okay", [])
+    -> debug(server, "Post-shutdown exit, okay", []),
+       halt(0)
     ;  debug(server, "No shutdown, unexpected exit", []),
        halt(1) ).
 handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
