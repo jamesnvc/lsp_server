@@ -41,7 +41,7 @@ check_errors(Path, Errors) :-
         erase(Ref)
     ),
     nb_getval(checking_errors, ErrList),
-    once(phrase(expand_errors(Path, ErrList), Errors)).
+    once(phrase(sequence(expand_errors(Path), ErrList), Errors)).
 
 singleton_warning_response(VarPoses, VarName) -->
     { atom_length(VarName, VarLen),
@@ -55,24 +55,21 @@ singleton_warning_response(VarPoses, VarName) -->
         message: Msg
     } ].
 
-expand_errors(Path, [e(singletons(_, SingletonVars), warning, _, ClauseLine, _)
-                    |InErrs]) --> !,
+expand_errors(Path, e(singletons(_, SingletonVars), warning, _, ClauseLine, _)) --> !,
     { clause_variable_positions(Path, ClauseLine, VariablePoses),
       list_to_assoc(VariablePoses, VarPoses) },
-    sequence(singleton_warning_response(VarPoses), SingletonVars),
-    expand_errors(Path, InErrs).
-expand_errors(Path, [e(error(existence_error(file, FileSpec), _),
-                       _Kind, _Lines, Line, _Char) | InErrs]) --> !,
+    sequence(singleton_warning_response(VarPoses), SingletonVars).
+expand_errors(Path, e(Err, _Kind, _Lines, Line, _Char)) -->
+    { Err = error(existence_error(file, FileSpec), _) },
+    !,
     { usemod_filespec_position(Path, Line, FileSpec, Span),
       format(string(Msg), "The file specified by `~p` cannot be located.", [FileSpec]) },
     [ _{severity: 2,
         source: "prolog_xref",
         range: Span,
-        message: Msg } ],
-    expand_errors(Path, InErrs).
-expand_errors(Path, [e(_, silent, _, _, _)|InErrs]) --> !,
-    expand_errors(Path, InErrs).
-expand_errors(Path, [e(_Term, error, Lines, _, _)|InErrs]) -->
+        message: Msg } ].
+expand_errors(_Path, e(_, silent, _, _, _)) --> !.
+expand_errors(_Path, e(_Term, error, Lines, _, _)) -->
     { Lines = [url(_File:Line1:Col1), _, _, Msg0] },
     !,
     { Msg0 = Fmt-Params
@@ -84,9 +81,8 @@ expand_errors(Path, [e(_Term, error, Lines, _, _)|InErrs]) -->
        range: _{start: _{line: Line0, character: Col0},
                 end:   _{line: Line1, character: 0}},
        message: Msg
-    }],
-    expand_errors(Path, InErrs).
-expand_errors(Path, [e(_Term, Kind, Lines, _, _)|InErr]) -->
+    }].
+expand_errors(Path, e(_Term, Kind, Lines, _, _)) -->
     { kind_level(Kind, Level),
       Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
       maplist(expand_error_message, Msgs0, Msgs),
@@ -98,11 +94,9 @@ expand_errors(Path, [e(_Term, Kind, Lines, _, _)|InErr]) -->
        range: _{start: _{line: Line0, character: Char0},
                 end:   _{line: Line1, character: 0}},
        message: Msg
-    }],
-    expand_errors(Path, InErr).
+    }].
 % Skip unhandleable ones:
-expand_errors(Path, [_Msg|InErr]) --> !, expand_errors(Path, InErr).
-expand_errors(_, []) --> [].
+expand_errors(_Path, _Msg) --> !.
 
 expand_error_message(Format-Args, Formatted) :-
     !, format(string(Formatted), Format, Args).
