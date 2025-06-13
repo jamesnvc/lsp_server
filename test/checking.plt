@@ -11,8 +11,8 @@
 :- begin_tests(checking).
 
 test('Errors for test file') :-
-    current_module(Mod),
-    module_property(Mod, file(ThisFile)),
+    context_module(ThisMod),
+    module_property(ThisMod, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './checking_input1.pl'),
     check_errors(InputFile, Errors), !,
     assertion(Errors =@= [
