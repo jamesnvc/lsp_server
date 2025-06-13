@@ -41,7 +41,7 @@ check_errors(Path, Errors) :-
         erase(Ref)
     ),
     nb_getval(checking_errors, ErrList),
-    once(phrase(sequence(expand_errors(Path), ErrList), Errors)).
+    once(phrase(sequence(error_expansion(Path), ErrList), Errors)).
 
 singleton_warning_response(VarPoses, VarName) -->
     { atom_length(VarName, VarLen),
@@ -55,11 +55,11 @@ singleton_warning_response(VarPoses, VarName) -->
         message: Msg
     } ].
 
-expand_errors(Path, e(singletons(_, SingletonVars), warning, _, ClauseLine, _)) --> !,
+error_expansion(Path, e(singletons(_, SingletonVars), warning, _, ClauseLine, _)) --> !,
     { clause_variable_positions(Path, ClauseLine, VariablePoses),
       list_to_assoc(VariablePoses, VarPoses) },
     sequence(singleton_warning_response(VarPoses), SingletonVars).
-expand_errors(Path, e(Err, _Kind, _Lines, Line, _Char)) -->
+error_expansion(Path, e(Err, _Kind, _Lines, Line, _Char)) -->
     { Err = error(existence_error(file, FileSpec), _) },
     !,
     { usemod_filespec_position(Path, Line, FileSpec, Span),
@@ -68,8 +68,8 @@ expand_errors(Path, e(Err, _Kind, _Lines, Line, _Char)) -->
         source: "prolog_xref",
         range: Span,
         message: Msg } ].
-expand_errors(_Path, e(_, silent, _, _, _)) --> !.
-expand_errors(_Path, e(_Term, error, Lines, _, _)) -->
+error_expansion(_Path, e(_, silent, _, _, _)) --> !.
+error_expansion(_Path, e(_Term, error, Lines, _, _)) -->
     { Lines = [url(_File:Line1:Col1), _, _, Msg0] },
     !,
     { Msg0 = Fmt-Params
@@ -82,7 +82,7 @@ expand_errors(_Path, e(_Term, error, Lines, _, _)) -->
                 end:   _{line: Line1, character: 0}},
        message: Msg
     }].
-expand_errors(Path, e(_Term, Kind, Lines, _, _)) -->
+error_expansion(Path, e(_Term, Kind, Lines, _, _)) -->
     { kind_level(Kind, Level),
       Lines = ['~w:~d:~d: '-[Path, Line1, Char1]|Msgs0], !,
       maplist(expand_error_message, Msgs0, Msgs),
@@ -96,7 +96,7 @@ expand_errors(Path, e(_Term, Kind, Lines, _, _)) -->
        message: Msg
     }].
 % Skip unhandleable ones:
-expand_errors(_Path, _Msg) --> !.
+error_expansion(_Path, _Msg) --> !.
 
 expand_error_message(Format-Args, Formatted) :-
     !, format(string(Formatted), Format, Args).
