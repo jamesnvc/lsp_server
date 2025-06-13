@@ -29,7 +29,6 @@ source and stuff.
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
 :- use_module(library(sgml), [load_html/3]).
 :- use_module(library(yall)).
-:- use_module(library(debug)).
 
 :- include('_lsp_path_add.pl').
 
