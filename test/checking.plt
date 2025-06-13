@@ -10,8 +10,12 @@
 
 :- begin_tests(checking).
 
-test('Errors for test file', [fixme(dunno_why_failing), true(Errors =@= Expected)]) :-
-    Expected = [
+test('Errors for test file') :-
+    current_module(Mod),
+    module_property(Mod, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './checking_input1.pl'),
+    check_errors(InputFile, Errors), !,
+    assertion(Errors =@= [
         _{ message: "Operator expected",
             range: _{ end: _{ character: 0, line: 10 },
                       start: _{ character: 11, line: 9 } },
@@ -41,9 +45,6 @@ test('Errors for test file', [fixme(dunno_why_failing), true(Errors =@= Expected
             range: _{ end: _{ character: 37, line: 0 },
                       start: _{ character: 14, line: 0 } },
             severity: 2,
-            source: "prolog_xref" } ],
-    module_property(formatter_t, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './checking_input1.pl'),
-    check_errors(InputFile, Errors).
+            source: "prolog_xref" } ]).
 
 :- end_tests(checking).
