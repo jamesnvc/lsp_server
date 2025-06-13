@@ -12,6 +12,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install swi-prolog
       - name: checkout code
-        uses: action/checkout@v4
+        uses: actions/checkout@v4
       - name: Run test script
         run: ./run_tests.sh
