@@ -1,0 +1,17 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    name: "Run Tests"
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install software-properties-common
+          sudo apt-add-repository ppa:swi-prolog/devel
+          sudo apt-get update
+          sudo apt-get install swi-prolog
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: Run test script
+        run: ./run_tests.sh

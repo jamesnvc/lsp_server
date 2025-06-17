@@ -142,6 +142,15 @@ foo(A, B, C, D, E, F) :-
         -> E = 5
         ;  F = 7 ) ) ).
 
+soft_foo(A, B, C, D, E, F) :-
+    ( A = 1
+    *-> B = 2
+    ; ( C = 3
+      *-> D = 4
+      ; ( A =:= 1
+        *-> E = 5
+        ;  F = 7 ) ) ).
+
 testing_dict_formatting(A) :-
     findall(B,
             ( Foo = _{x: 1,
@@ -185,5 +194,10 @@ add_use_if_needed__(LastModuleAt, AlreadyImported, Stream, Path, Module, Predica
            Term = end_of_file )),
     Term = end_of_file,
     true.
+
+this(A, B) :-
+    (call(A)
+    -> call(B)
+    ; A = B).
 
 % end comment
