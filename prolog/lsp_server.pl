@@ -106,7 +106,7 @@ handle_requests_stream(StreamPair) :-
 % to write to stdout
 client_handler(In, Out) :-
     catch(handle_requests(In, Out),
-          break_unlimited,
+          break_client_handler_loop,
           debug(server(high), "ending client handler loop", [])).
 
 handle_requests(In, Out) :-
@@ -127,7 +127,7 @@ request_and_response(Out) -->
          % Since `Content-Length` may not have parsed correctly, we don't know
          % how much input to skip. Probably safest to shutdown (stdio server)
          % or at least ask socket clients to reconnect.
-         throw(break_unlimited) } ).
+         throw(break_client_handler_loop) } ).
 
 % general handling stuff
 
@@ -217,7 +217,7 @@ handle_msg("exit", _Msg, false) :-
     asserta(exit_request_received),
     ( shutdown_request_received
     -> debug(server, "Post-shutdown exit, okay", []),
-       halt(0)
+       throw(break_client_handler_loop)
     ;  debug(server, "No shutdown, unexpected exit", []),
        halt(1) ).
 handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
