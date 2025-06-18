@@ -63,7 +63,7 @@ error_expansion(Path, e(Term, warning, _Lines, Line, _Char)) -->
     { Term = error(existence_error(file, FileSpec), _) },
     !,
     { usemod_filespec_position(Path, Line, FileSpec, Span),
-      format(string(Msg), "The file specified by `~p` cannot be located.", [FileSpec]) },
+      format(string(Msg), "Module `~p` not found", [FileSpec]) },
     [ _{severity: 2,
         source: "prolog_xref",
         range: Span,
