@@ -44,6 +44,6 @@ test('Errors for test file',
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './checking_input1.pl'),
-    once(check_errors(InputFile, Errors)).
+    check_errors(InputFile, Errors).
 
 :- end_tests(checking).
