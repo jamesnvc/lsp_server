@@ -72,10 +72,10 @@ error_expansion(_Path, e(_, silent, _, _, _)) --> !.
 error_expansion(_Path, e(_Term, error, Lines, _, _)) -->
     { Lines = [url(_File:Line1:Col1), _, _, Msg0] },
     !,
-    { Msg0 = Fmt-Params
-    -> format(string(Msg), Fmt, Params)
-    ;  text_to_string(Msg0, Msg),
-       succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ) },
+    { ( Msg0 = Fmt-Params
+      -> format(string(Msg), Fmt, Params)
+      ;  text_to_string(Msg0, Msg) ),
+      succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ) },
     [_{severity: 1,
        source: "prolog_xref",
        range: _{start: _{line: Line0, character: Col0},
