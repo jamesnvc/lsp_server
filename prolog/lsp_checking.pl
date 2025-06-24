@@ -17,16 +17,16 @@ Module for checking Prolog source files for errors and warnings.
 :- include('_lsp_path_add.pl').
 :- use_module(lsp(lsp_utils), [clause_variable_positions/3]).
 
-:- dynamic user:message_hook/3.
-:- multifile user:message_hook/3.
+:- dynamic user:thread_message_hook/3.
+:- multifile user:thread_message_hook/3.
 
 %! check_errors(+Path:atom, -Errors:List) is det.
 %
 %  =Errors= is a list of the errors in the file given by =Path=.
-%  This predicate changes the =user:message_hook/3= hook.
+%  This predicate changes the =user:thread_message_hook/3= hook.
 check_errors(Path, Errors) :-
     nb_setval(checking_errors, []),
-    Hook = (user:message_hook(Term, Kind, Lines) :-
+    Hook = (user:thread_message_hook(Term, Kind, Lines) :-
                 prolog_load_context(term_position, Pos),
                 stream_position_data(line_count, Pos, Line),
                 stream_position_data(line_position, Pos, Char),
