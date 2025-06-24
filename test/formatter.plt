@@ -11,6 +11,16 @@
 
 :- begin_tests(formatting).
 
+test('Round-tripping file',
+    [ true(InputFileText == OutputFileText) ]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './format_input1.pl'),
+    read_file_to_string(InputFile, InputFileText, []),
+    reified_format_for_file(InputFile, ReifiedInput),
+    with_output_to(string(OutputFileText), emit_reified(current_output, ReifiedInput)).
+
+
 test('Formatting example file',
     [ true(FormattedText == OutputFileText) ]) :-
     context_module(ThisModule),
