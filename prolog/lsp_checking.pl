@@ -35,7 +35,7 @@ check_errors(Path, Errors) :-
            ),
     setup_call_cleanup(
         assertz(Hook, Ref),
-        ( xref_clean(Path), xref_source(Path) ),
+        ( xref_clean(Path), xref_source(Path, [silent(false)]) ),
         erase(Ref)
     ),
     nb_getval(checking_errors, ErrList),
