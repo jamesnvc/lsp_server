@@ -15,7 +15,8 @@ test('Highlighting var in file location 1',
                                       start:_{character:46, line:33}}},
                             _{range:_{end:_{character:60, line:34},
                                       start:_{character:51, line:34}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(34, 51), Highlights).
 
@@ -25,7 +26,8 @@ test('Highlighting var in file location 2',
                                       start:_{character:4, line:56}}},
                             _{range:_{end:_{character:11, line:63},
                                       start:_{character:10, line:63}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(57, 4), Highlights).
 
@@ -34,7 +36,8 @@ test('Highlighting var in file location 3 - list tail',
                                       start:_{character:34, line:130}}},
                             _{range:_{end:_{character:81, line:132},
                                       start:_{character:68, line:132}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(131, 45), Highlights).
 
@@ -43,7 +46,8 @@ test('Highlighting var in file location 4 - list element',
                                       start:_{character:81, line:127}}},
                             _{range:_{end:_{character:66, line:132},
                                       start:_{character:58, line:132}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(133, 58), Highlights).
 
@@ -52,7 +56,8 @@ test('Highlighting term in file',
                                       start:_{character:4, line:24}}},
                             _{range:_{end:_{character:29, line:105},
                                       start:_{character:20, line:105}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     highlights_at_position(InputFile, line_char(25, 5), Highlights).
 
@@ -64,20 +69,23 @@ test('Can ask for the type of leaf to find',
                                        start:_{character:46, line:33}}},
                              _{range:_{end:_{character:60, line:34},
                                        start:_{character:51, line:34}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     lsp_highlights:highlights_at_position(InputFile, line_char(34, 51),
                                           '$var'(TheVar), Highlights).
 
 test('Highlighting asking for a variable on a term should fail',
      [ fail ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     lsp_highlights:highlights_at_position(InputFile, line_char(25, 5), '$var'(_), _).
 
 test('Highlighting asking for a variable on a comment should fail',
      [ fail ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     lsp_highlights:highlights_at_position(InputFile, line_char(130, 14), '$var'(_), _).
 
@@ -87,10 +95,9 @@ test('Highlighting issue with compound',
                           end:_{line: 143, character: 6}}},
                 _{range:_{start:_{line: 144, character: 11},
                           end:_{line: 144, character: 13}}}]) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './highlight_input1.pl'),
     lsp_highlights:highlights_at_position(InputFile, line_char(145, 11), Leaf, Highlights).
-
-
 
 :- end_tests(highlights).

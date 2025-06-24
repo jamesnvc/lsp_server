@@ -13,7 +13,8 @@
 
 test('Formatting example file',
     [ true(FormattedText == OutputFileText) ]) :-
-    module_property(formatter_t, file(ThisFile)),
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './format_input1.pl'),
     relative_file_name(OutputFile, ThisFile, './format_output1.pl'),
     read_file_to_string(OutputFile, OutputFileText, []),
