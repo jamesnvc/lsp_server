@@ -64,7 +64,7 @@ emit_reified(To, [Term|Rest]) :-
     emit_reified_(To, Term),
     emit_reified(To, Rest).
 
-emit_reified_(To, newline) => format(To, "~n", []).
+emit_reified_(To, newline) => write(To, "\n").
 emit_reified_(To, white(N)) =>
     length(Whites, N),
     maplist(=(0' ), Whites),
@@ -346,7 +346,8 @@ stream_position_at_offset(LineCharMap, To, EndPos) :-
 term_end_position(Term, Position) :-
     setup_call_cleanup(
         open_null_stream(Out),
-        ( write(Out, Term),
+        ( set_stream(Out, newline(posix)),
+          write(Out, Term),
           stream_property(Out, position(Position))
         ),
         close(Out)).
