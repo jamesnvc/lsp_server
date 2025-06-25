@@ -257,6 +257,7 @@ predicate_help(HerePath, Pred, Help) :-
     memberchk(mode(Signature, Mode), Parsed),
     memberchk(predicate(_, Summary, _), Parsed),
     format(string(Help), "  ~w is ~w.~n~n~w", [Signature, Mode, Summary]).
+/*
 predicate_help(_, Pred/_Arity, Help) :-
     help_objects(Pred, dwim, Matches), !,
     catch(help_html(Matches, dwim-Pred, HtmlDoc), _, fail),
@@ -264,6 +265,7 @@ predicate_help(_, Pred/_Arity, Help) :-
                        load_html(stream(In), Dom, []),
                        close(In)),
     with_output_to(string(Help), html_text(Dom)).
+*/
 
 location_path(HerePath, local(_), HerePath).
 location_path(_, imported(Path), Path).
