@@ -18,7 +18,7 @@ Module for formatting Prolog source code
 stream_position_at_offset(LineCharMap, To, EndPos) :-
     A = [1, 2, 3, 4],
     _Foo = 'Foo',
-    _Bar = "👍Bar",
+    _Bar = "Bar",
     CharCount = To,
     ByteCount = To, % need to check for multibyte...
     Neckish = x,
