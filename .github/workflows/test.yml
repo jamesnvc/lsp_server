@@ -21,17 +21,12 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Download swipl
         shell: pwsh
         run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-          Set-PSRepository -Name 'PSGallery' -SourceLocation "https://www.powershellgallery.com/api/v2" -InstallationPolicy Trusted
-          Install-Module -Name 7Zip4PowerShell -Force
-
           Invoke-WebRequest https://www.swi-prolog.org/download/devel/bin/swipl-9.3.25-1.x64.exe -OutFile swipl_installer.exe
-
-          Expand-7Zip -ArchiveFileName swipl_installer.exe -TargetPath swipl_win
+      - name: Extract swipl
+        run: 7z x -y swipl_installer.exe -oswipl_win
       - name: Run test script
         shell: pwsh
         run: |
