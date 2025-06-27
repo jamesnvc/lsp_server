@@ -18,6 +18,9 @@ jobs:
   test_windows:
     name: "Run Tests - Windows"
     runs-on: 'windows-latest'
+    defaults:
+      run:
+        working-directory: ./lsp_server
     steps:
       - name: checkout code
         uses: actions/checkout@v4
@@ -30,4 +33,4 @@ jobs:
       - name: Run test script
         shell: pwsh
         run: |
-          & run_tests.ps1
+          & .\run_tests.ps1
