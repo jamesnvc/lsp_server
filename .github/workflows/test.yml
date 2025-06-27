@@ -1,8 +1,8 @@
 name: Tests
 on: [push, pull_request]
 jobs:
-  test:
-    name: "Run Tests"
+  test_linux:
+    name: "Run Tests - Linux"
     runs-on: 'ubuntu-latest'
     steps:
       - name: Install dependencies
@@ -15,3 +15,23 @@ jobs:
         uses: actions/checkout@v4
       - name: Run test script
         run: ./run_tests.sh
+  test_windows:
+    name: "Run Tests - Windows"
+    runs-on: 'windows-latest'
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+          Set-PSRepository -Name 'PSGallery' -SourceLocation "https://www.powershellgallery.com/api/v2" -InstallationPolicy Trusted
+          Install-Module -Name 7Zip4PowerShell -Force
+
+          Invoke-WebRequest https://www.swi-prolog.org/download/devel/bin/swipl-9.3.25-1.x64.exe -OutFile swipl_installer.exe
+
+          Expand-7Zip -ArchiveFileName swipl_installer.exe -TargetPath swipl_win
+      - name: Run test script
+        shell: pwsh
+        run: & run_tests.ps1
