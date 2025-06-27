@@ -34,4 +34,5 @@ jobs:
           Expand-7Zip -ArchiveFileName swipl_installer.exe -TargetPath swipl_win
       - name: Run test script
         shell: pwsh
-        run: & run_tests.ps1
+        run: |
+          & run_tests.ps1
