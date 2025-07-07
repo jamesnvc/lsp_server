@@ -72,13 +72,7 @@ token_types_dict(Dict) :-
 %  True when =Colours= is a list of colour information
 %  corresponding to the file =File=.
 file_colours(File, Tuples) :-
-    setup_call_cleanup(
-        message_queue_create(Queue),
-        ( thread_create(file_colours_helper(Queue, File), ThreadId),
-          await_messages(Queue, Colours0, Colours0) ),
-        ( thread_join(ThreadId),
-          message_queue_destroy(Queue) )
-    ),
+    file_colours_helper(File, Colours0),
     sort(2, @=<, Colours0, Colours),
     flatten_colour_terms(File, Colours, Tuples).
 
@@ -241,20 +235,21 @@ await_messages(Q, H, T) :-
 %! file_colours_helper(+Queue, +File) is det.
 %
 %  Use =prolog_colourise_stream/3= to accumulate a list of colour
-%  terms. Does it in this weird way sending messages to a queue
-%  because the predicate takes a closure but we want to get a list of
-%  all of the terms.
-file_colours_helper(Queue, File) :-
+%  terms.
+file_colours_helper(File, Info) :-
+    Acc = acc([]),
     setup_call_cleanup(
         file_stream(File, S),
         prolog_colourise_stream(
             S, File,
-            {Queue}/[Cat, Start, Len]>>(
-                thread_send_message(Queue, colour(Cat, Start, Len)))
+            {Acc}/[Cat, Start, Len]>>(
+                arg(1, Acc, Data),
+                nb_setarg(1, Acc, [colour(Cat, Start, Len)|Data])
+            )
         ),
         close(S)
     ),
-    thread_send_message(Queue, done).
+    arg(1, Acc, Info).
 
 nearest_term_start(Stream, StartL, TermStart) :-
     read_source_term_at_location(Stream, _, [line(StartL), error(Error)]),
