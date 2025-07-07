@@ -82,14 +82,7 @@ file_colours(File, Tuples) :-
 %  to file =File= covering the terms between =Start= and =End=. Note
 %  that it may go beyond either bound.
 file_range_colours(File, Start, End, Tuples) :-
-    setup_call_cleanup(
-        message_queue_create(Queue),
-        ( thread_create(file_term_colours_helper(Queue, File, Start, End),
-                        ThreadId),
-          await_messages(Queue, Colours0, Colours0) ),
-        ( thread_join(ThreadId),
-          message_queue_destroy(Queue) )
-    ),
+    file_term_colours_helper(File, Start, End, Colours0),
     sort(2, @=<, Colours0, Colours),
     flatten_colour_terms(File, Colours, Tuples).
 
@@ -259,27 +252,27 @@ nearest_term_start(Stream, StartL, TermStart) :-
     ;  TermStart = StartL
     ).
 
-file_term_colours_helper(Queue, File,
-                         line_char(StartL, _StartC),
-                         End) :-
+file_term_colours_helper(File, line_char(StartL, _StartC), End, Info) :-
+    Acc = acc([]),
     setup_call_cleanup(
         file_stream(File, S),
         ( nearest_term_start(S, StartL, TermLine),
           seek(S, 0, bof, _),
           set_stream_position(S, '$stream_position'(0,0,0,0)),
           seek_to_line(S, TermLine),
-          colourise_terms_to_position(Queue, File, S, 0-0, End)
+          colourise_terms_to_position(Acc, File, S, 0-0, End)
         ),
         close(S)
     ),
-    thread_send_message(Queue, done).
+    arg(1, Acc, Info).
 
-colourise_terms_to_position(Queue, File, Stream, Prev, End) :-
+colourise_terms_to_position(Acc, File, Stream, Prev, End) :-
     prolog_colourise_term(
         Stream, File,
-        {Queue}/[Cat, Start, Len]>>(
-            thread_send_message(Queue, colour(Cat, Start, Len))),
-        []),
+        {Acc}/[Cat, Start, Len]>>(
+            arg(1, Acc, Tail),
+            nb_setarg(1, Acc, [colour(Cat, Start, Len)|Tail])),
+        []), !,
     stream_property(Stream, position(Pos)),
     stream_position_data(line_count, Pos, Line),
     stream_position_data(line_position, Pos, Char),
@@ -290,5 +283,5 @@ colourise_terms_to_position(Queue, File, Stream, Prev, End) :-
     -> true
     ;  ( EndL == Line, EndC =< Char )
     -> true
-    ; colourise_terms_to_position(Queue, File, Stream, Line-Char, End)
+    ; colourise_terms_to_position(Acc, File, Stream, Line-Char, End)
     ).
