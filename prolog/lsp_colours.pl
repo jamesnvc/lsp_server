@@ -149,7 +149,9 @@ colour_term_to_tuple(Stream, Dict,
                        close(NullStream)),
     stream_property(Stream, position(Pos)),
     stream_position_data(line_count, Pos, Line),
-    stream_position_data(line_position, Pos, Char),
+    % can't use line_position, because it counts tabs as 8 characters, which throws things off
+    % stream_position_data(line_position, Pos, Char),
+    line_position_characters(Stream, Pos, Char),
     ( Line == LastLine
     -> ( DeltaLine = 0,
          DeltaStart is Char - LastChar
@@ -158,6 +160,24 @@ colour_term_to_tuple(Stream, Dict,
         DeltaStart = Char
       )
     ).
+
+line_position_characters(Stream, Pos, Char) :-
+    stream_position_data(char_count, Pos, StartChar),
+    stream_position_data(line_count, Pos, StartLine),
+    ( StartLine > 0
+    -> ( repeat,
+         seek(Stream, -1, current, _),
+         peek_code(Stream, 0'\n), !,
+         get_code(Stream, _) )
+    ; seek(Stream, 0, bof, _) ),
+    character_count(Stream, StartOfLine),
+    ( repeat,
+      get_code(Stream, _),
+      character_count(Stream, CharHere),
+      CharHere >= StartChar, !
+    ),
+    Char is max(0, CharHere - StartOfLine),
+    set_stream_position(Stream, Pos).
 
 colour_type(directive,                namespace, []).
 colour_type(head_term(_,              _),        function,  [declaration]).
