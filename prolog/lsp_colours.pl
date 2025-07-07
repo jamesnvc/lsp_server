@@ -267,12 +267,12 @@ file_term_colours_helper(File, line_char(StartL, _StartC), End, Info) :-
     arg(1, Acc, Info).
 
 colourise_terms_to_position(Acc, File, Stream, Prev, End) :-
-    prolog_colourise_term(
+    once(prolog_colourise_term(
         Stream, File,
         {Acc}/[Cat, Start, Len]>>(
             arg(1, Acc, Tail),
             nb_setarg(1, Acc, [colour(Cat, Start, Len)|Tail])),
-        []), !,
+        [])),
     stream_property(Stream, position(Pos)),
     stream_position_data(line_count, Pos, Line),
     stream_position_data(line_position, Pos, Char),
