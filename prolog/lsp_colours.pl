@@ -180,8 +180,10 @@ line_position_characters(Stream, Pos, Char) :-
     set_stream_position(Stream, Pos).
 
 colour_type(directive,                namespace, []).
+
 colour_type(head_term(_,              _),        function,  [declaration]).
 colour_type(neck(directive),          operator,  [declaration]).
+colour_type(neck(':-'),               operator,  [declaration]).
 colour_type(neck(clause),             operator,  [definition]).
 colour_type(neck(grammar_rule),       operator,  [definition]).
 colour_type(goal_term(built_in,       A),        macro,     []) :- atom(A), !.
@@ -191,7 +193,7 @@ colour_type(goal_term(imported(_),    _),        function,  []).
 colour_type(goal_term(local(_),       _),        function,  []).
 colour_type(goal_term(extern(_,_),    _),        function,  []).
 colour_type(goal_term(recursion,      _),        member,    []).
-colour_type(goal_term(('dynamic'(_)), _),        parameter, []).
+colour_type(goal_term(('dynamic'(_)), _),        member, []).
 colour_type(atom,                     string,    []).
 colour_type(var,                      variable,  []).
 colour_type(singleton,                variable,  [readonly]).
