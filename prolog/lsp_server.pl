@@ -10,6 +10,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3, debug/1]).
 :- use_module(library(http/json), [atom_json_dict/3]).
+:- use_module(library(pure_input), [phrase_from_stream/2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).
 :- use_module(library(utf8), [utf8_codes//1]).
@@ -99,31 +100,34 @@ handle_requests_stream(StreamPair) :-
     % causes Content-Length to be incorrect
     set_stream(In, encoding(octet)),
     set_stream(Out, encoding(utf8)),
-    client_handler(A-A, In, Out).
-
-client_handler(Extra-ExtraTail, In, Out) :-
-    wait_for_input([In], Ready, 1.0),
-    ( exit_request_received
-    -> debug(server(high), "ending client handler loop", [])
-    ; ( Ready =@= []
-      -> client_handler(Extra-ExtraTail, In, Out)
-      ; fill_buffer(In),
-        read_pending_codes(In, ReadCodes, Tail),
-        ( Tail == []
-        -> true
-        ; ExtraTail = ReadCodes,
-          handle_requests(Out, Extra, Remainder),
-          client_handler(Remainder-Tail, In, Out) ) ) ).
+    client_handler(In, Out).
 
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
-handle_requests(Out, In, Tail) :-
-    phrase(lsp_request(Req), In, Rest), !,
-    ignore(handle_request(Req, Out)),
-    ( var(Rest)
-    -> Tail = Rest
-    ; handle_requests(Out, Rest, Tail) ).
-handle_requests(_, T, T).
+client_handler(In, Out) :-
+    catch(handle_requests(In, Out),
+          break_client_handler_loop,
+          debug(server(high), "ending client handler loop", [])).
+
+handle_requests(In, Out) :-
+    % Parse an unlimited number of requests from the input stream, responding
+    % to each one as it is received.
+    phrase_from_stream(unlimited(request_and_response(Out)), In).
+
+request_and_response(Out) -->
+    % Parse an LSP request from the input stream
+    (  lsp_request(Req)
+    -> % As a side effect, respond to the request
+       { ignore(handle_request(Req, Out)) }
+    ;  % Failure of `lsp_request//1` indicates an unparsable RPC request
+       { debug(server(high), "unparsable RPC request", []),
+         send_message(Out, _{id: null,
+                             error: _{code: -32700, % JSON RPC ParseError
+                                      message: "unparsable request"}}),
+         % Since `Content-Length` may not have parsed correctly, we don't know
+         % how much input to skip. Probably safest to shutdown (stdio server)
+         % or at least ask socket clients to reconnect.
+         throw(break_client_handler_loop) } ).
 
 % general handling stuff
 
@@ -212,7 +216,8 @@ handle_msg("exit", _Msg, false) :-
     debug(server, "received exit, shutting down", []),
     asserta(exit_request_received),
     ( shutdown_request_received
-    -> debug(server, "Post-shutdown exit, okay", [])
+    -> debug(server, "Post-shutdown exit, okay", []),
+       throw(break_client_handler_loop)
     ;  debug(server, "No shutdown, unexpected exit", []),
        halt(1) ).
 handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
