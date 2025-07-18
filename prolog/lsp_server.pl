@@ -102,6 +102,11 @@ handle_requests_stream(StreamPair) :-
     set_stream(Out, encoding(utf8)),
     client_handler(In, Out).
 
+:- multifile prolog:message//1.
+
+% Prevent default error message from being displayed when throwing to break loop
+prolog:message(break_client_handler_loop) --> [ ].
+
 % [TODO] add multithreading? Guess that will also need a message queue
 % to write to stdout
 client_handler(In, Out) :-
