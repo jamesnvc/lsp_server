@@ -234,19 +234,6 @@ mods_mask([Mod|Mods], Mask0, Mask) :-
 
 %%% Helpers
 
-%! await_messages(+Queue, ?Head, -Tail) is det.
-%
-%  Helper predicate to accumulate messages from
-%  =file_colours_helper/2= in a list.
-await_messages(Q, H, T) :-
-    thread_get_message(Q, Term),
-    ( Term == done
-    -> T = []
-    ; ( T = [Term|T0],
-        await_messages(Q, H, T0)
-      )
-    ).
-
 %! file_colours_helper(+Queue, +File) is det.
 %
 %  Use =prolog_colourise_stream/3= to accumulate a list of colour
