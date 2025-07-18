@@ -5,6 +5,7 @@
                       help_at_position/4,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
+                      usemod_filespec_position/4,
                       seek_to_line/2,
                       linechar_offset/3,
                       url_path/2,
@@ -312,6 +313,45 @@ clause_variable_positions(Path, Line, Variables) :-
             Locations
         ),
         Variables).
+
+usemod_filespec_position(Path, Line, FileSpec, Position) :-
+    file_lines_start_end(Path, LineCharRange),
+    read_term_positions(Path, TermsWithPositions),
+    % find the top-level term that the offset falls within
+    file_offset_line_position(LineCharRange, Offset, Line, 0),
+    member(TermInfo, TermsWithPositions),
+    SubTermPoses = TermInfo.subterm,
+    arg(1, SubTermPoses, TermFrom),
+    arg(2, SubTermPoses, TermTo),
+    between(TermFrom, TermTo, Offset), !,
+    find_in_term_with_positions(
+        {FileSpec}/[Term, _]>>once(matches_use_module(FileSpec, Term)),
+        TermInfo.term,
+        TermInfo.subterm,
+        Positions,
+        [] ),
+    member(
+        found_at(_Term,
+            term_position(_, _, _, _, [ % :- ...
+                term_position(_, _, _, _, [ % use_module(...)
+                    SpecPos | _Rest])])),
+        Positions
+    ),
+    termpos_start_end(SpecPos, Start, End),
+    file_offset_line_position(LineCharRange, Start, StartLine1, StartCol),
+    file_offset_line_position(LineCharRange, End, EndLine1, EndCol),
+    succ(StartLine, StartLine1),
+    succ(EndLine, EndLine1),
+    Position = _{start: _{line: StartLine, character: StartCol},
+                 end:   _{line: EndLine,   character: EndCol  } }.
+
+matches_use_module(FileSpec, ( :- use_module(FileSpec) )).
+matches_use_module(FileSpec, ( :- use_module(FileSpec, _) )).
+
+termpos_start_end(From-To, From, To) :- !. % Primitive types (atoms, numbers, variables)
+termpos_start_end(Term, From, To) :-
+    arg(1, Term, From),
+    arg(2, Term, To).
 
 clause_in_file_at_position(Clause, Path, Position) :-
     xref_source(Path),
