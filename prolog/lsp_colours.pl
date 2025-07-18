@@ -172,8 +172,8 @@ line_position_characters(Stream, Pos, Char) :-
     ; seek(Stream, 0, bof, _) ),
     character_count(Stream, StartOfLine),
     ( repeat,
-      get_code(Stream, _),
       character_count(Stream, CharHere),
+      get_code(Stream, _),
       CharHere >= StartChar, !
     ),
     Char is max(0, CharHere - StartOfLine),
