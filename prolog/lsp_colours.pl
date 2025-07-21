@@ -102,10 +102,10 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
     setup_call_cleanup(
         file_stream(File, S),
         ( set_stream(S, newline(posix)),
-          set_stream_position(S, '$stream_position'(0,0,0,0)),
+          set_stream_position(S, '$stream_position'(0,1,0,0)),
           colour_terms_to_tuples(ColourTerms, Nums-Nums,
                                  S, TokenDict,
-                                 0, 0, 0) ),
+                                 0, 1, 0) ),
         close(S)
     ).
 
@@ -165,7 +165,7 @@ colour_term_to_tuple(Stream, Dict,
 line_position_characters(Stream, Pos, Char) :-
     stream_position_data(char_count, Pos, StartChar),
     stream_position_data(line_count, Pos, StartLine),
-    ( StartLine > 0
+    ( StartLine > 1
     -> ( repeat,
          seek(Stream, -1, current, _),
          peek_code(Stream, 0'\n), !,
