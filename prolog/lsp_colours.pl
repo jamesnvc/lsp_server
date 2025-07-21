@@ -87,9 +87,10 @@ file_range_colours(File, Start, End, Tuples) :-
     flatten_colour_terms(File, Colours, Tuples).
 
 file_stream(File, S) :-
-    doc_text(File, Changes)
+    ( doc_text(File, Changes)
     -> open_string(Changes, S)
-    ;  open(File, read, S).
+    ;  open(File, read, S) ),
+    set_stream(S, newline(posix)).
 
 %! flatten_colour_terms(+File, +ColourTerms, -Nums) is det.
 %
@@ -101,8 +102,7 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
     token_types_dict(TokenDict),
     setup_call_cleanup(
         file_stream(File, S),
-        ( set_stream(S, newline(posix)),
-          set_stream_position(S, '$stream_position'(0,1,0,0)),
+        ( seek(S, 0, bof, _),
           colour_terms_to_tuples(ColourTerms, Nums-Nums,
                                  S, TokenDict,
                                  0, 1, 0) ),
