@@ -101,7 +101,8 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
     token_types_dict(TokenDict),
     setup_call_cleanup(
         file_stream(File, S),
-        ( set_stream_position(S, '$stream_position'(0,0,0,0)),
+        ( set_stream(S, newline(posix)),
+          set_stream_position(S, '$stream_position'(0,0,0,0)),
           colour_terms_to_tuples(ColourTerms, Nums-Nums,
                                  S, TokenDict,
                                  0, 0, 0) ),
