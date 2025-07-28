@@ -160,28 +160,6 @@ defined_at(Path, Name/Arity, Location) :-
     url_path(Doc, Path),
     relative_ref_location(Doc, Callable, Ref, Location).
 
-
-find_subclause(Stream, Subclause, CallerLine, Locations) :-
-    read_source_term_at_location(Stream, Term, [line(CallerLine),
-                                                subterm_positions(Poses)]),
-    findall(Offset, distinct(Offset, find_clause(Term, Offset, Poses, Subclause)),
-            Offsets),
-    collapse_adjacent(Offsets, StartOffsets),
-    maplist(offset_line_char(Stream), StartOffsets, Locations).
-
-offset_line_char(Stream, Offset, position(Line, Char)) :-
-    % seek(Stream, 0, bof, _),
-    % for some reason, seek/4 isn't zeroing stream line position
-    set_stream_position(Stream, '$stream_position'(0, 0, 0, 0)),
-    setup_call_cleanup(
-        open_null_stream(NullStream),
-        copy_stream_data(Stream, NullStream, Offset),
-        close(NullStream)
-    ),
-    stream_property(Stream, position(Pos)),
-    stream_position_data(line_count, Pos, Line),
-    stream_position_data(line_position, Pos, Char).
-
 collapse_adjacent([X|Rst], [X|CRst]) :-
     collapse_adjacent(X, Rst, CRst).
 collapse_adjacent(X, [Y|Rst], CRst) :-
