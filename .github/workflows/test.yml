@@ -24,7 +24,7 @@ jobs:
       - name: Download swipl
         shell: pwsh
         run: |
-          Invoke-WebRequest https://www.swi-prolog.org/download/devel/bin/swipl-9.3.25-1.x64.exe -OutFile swipl_installer.exe
+          Invoke-WebRequest https://www.swi-prolog.org/download/devel/bin/swipl-9.3.26-1.x64.exe -OutFile swipl_installer.exe
       - name: Extract swipl
         run: 7z x -y swipl_installer.exe -oswipl_win
       - name: Run test script
