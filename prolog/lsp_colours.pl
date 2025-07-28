@@ -103,65 +103,40 @@ flatten_colour_terms(File, ColourTerms, Nums) :-
     setup_call_cleanup(
         file_stream(File, S),
         ( seek(S, 0, bof, _),
-          colour_terms_to_tuples(ColourTerms, Nums-Nums,
-                                 S, TokenDict,
-                                 0, 1, 0) ),
+          phrase(colour_term_to_tuple(S, TokenDict, 0, 1, 0),
+                 ColourTerms,
+                 Nums)
+        ),
         close(S)
     ).
 
-colour_terms_to_tuples([], _-[],
-                       _Stream, _Dict,
-                       _Offset, _Line, _Char).
-colour_terms_to_tuples([Colour|Colours], Tuples-T0,
-                       Stream, Dict,
-                       LastOffset, LastLine, LastChar) :-
-    colour_term_to_tuple(Stream, Dict,
-                         LastOffset, LastLine, LastChar,
-                         ThisOffset, ThisLine, ThisChar,
-                         Colour,
-                         T0-T1), !,
-    colour_terms_to_tuples(Colours, Tuples-T1,
-                           Stream, Dict,
-                           ThisOffset, ThisLine, ThisChar).
-colour_terms_to_tuples([colour(_Type, _, _)|Colours], Tuples,
-                       Stream, Dict,
-                       ThisOffset, ThisLine, ThisChar) :-
-    % ( memberchk(Type, [clause, body, list, empty_list, brace_term, parentheses,
-    %                    range, goal(_, _), head(_, _), dict, dict_content,
-    %                    term, error])
-    % -> true
-    % ; debug(server, "Unhighlighted term ~w", [Type])
-    % ),
-    colour_terms_to_tuples(Colours, Tuples,
-                           Stream, Dict,
-                           ThisOffset, ThisLine, ThisChar).
-
-colour_term_to_tuple(Stream, Dict,
-                     LastOffset, LastLine, LastChar,
-                     Offset, Line, Char,
-                     colour(Type, Offset, Len),
-                     [DeltaLine, DeltaStart, Len, TypeCode, ModMask|T1]-T1) :-
-    colour_type(Type, TypeCategory, Mods),
-    get_dict(TypeCategory, Dict, TypeCode),
-    mods_mask(Mods, ModMask), !,
-    Seek is Offset - LastOffset,
-    setup_call_cleanup(open_null_stream(NullStream),
-                       ( set_stream(NullStream, newline(posix)), 
-                         copy_stream_data(Stream, NullStream, Seek) ),
-                       close(NullStream)),
-    stream_property(Stream, position(Pos)),
-    stream_position_data(line_count, Pos, Line),
-    % can't use line_position, because it counts tabs as 8 characters, which throws things off
-    % stream_position_data(line_position, Pos, Char),
-    line_position_characters(Stream, Pos, Char),
-    ( Line == LastLine
-    -> ( DeltaLine = 0,
-         DeltaStart is Char - LastChar
-       )
-    ; ( DeltaLine is Line - LastLine,
-        DeltaStart = Char
-      )
-    ).
+colour_term_to_tuple(Stream, Dict, LastOffset, LastLine, LastChar), R -->
+    [colour(Type, NewOffset, Len)], !,
+    { ( colour_type(Type, TypeCategory, Mods),
+        get_dict(TypeCategory, Dict, TypeCode),
+        mods_mask(Mods, ModMask) )
+      -> Seek is NewOffset - LastOffset,
+         Offset = NewOffset,
+         setup_call_cleanup(open_null_stream(NullStream),
+                            ( set_stream(NullStream, newline(posix)),
+                              copy_stream_data(Stream, NullStream, Seek) ),
+                            close(NullStream)),
+         stream_property(Stream, position(Pos)),
+         stream_position_data(line_count, Pos, Line),
+         % can't use line_position, because it counts tabs as 8 characters, which throws things off
+         % stream_position_data(line_position, Pos, Char),
+         line_position_characters(Stream, Pos, Char),
+         ( Line == LastLine
+         -> DeltaLine = 0,
+            DeltaStart is Char - LastChar
+         ; DeltaLine is Line - LastLine,
+           DeltaStart = Char  ),
+         R = [DeltaLine, DeltaStart, Len, TypeCode, ModMask]
+      ; R = [],
+        Offset = LastOffset, Line = LastLine, Char = LastChar
+    },
+    colour_term_to_tuple(Stream, Dict, Offset, Line, Char).
+colour_term_to_tuple(_, _, _, _, _) --> [].
 
 line_position_characters(Stream, Pos, Char) :-
     stream_position_data(char_count, Pos, StartChar),
