@@ -23,7 +23,7 @@ source and stuff.
 :- use_module(library(apply), [maplist/3, exclude/3]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
-:- use_module(library(help), [help_html/3, help_objects/3]).
+:- use_module(library(help)). % help_text/2 if new, help_html/3 & help_objects/3 if old
 :- use_module(library(lynx/html_text), [html_text/1]).
 :- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
@@ -241,14 +241,18 @@ format_help(HelpFull, Help) :-
     append([HelpShort], HelpLines0, HelpLines1),
     atomic_list_concat(HelpLines1, "\n", Help).
 
+:- if(current_predicate(help_text/2)).
+predicate_help(_, Pred, Help) :- help_text(Pred, Help), !.
+:- else.
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),
-    help_objects(Pred, exact, Matches), !,
-    catch(help_html(Matches, exact-exact, HtmlDoc), _, fail),
+    prolog_help:help_objects(Pred, exact, Matches), !,
+    catch(prolog_help:help_html(Matches, exact-exact, HtmlDoc), _, fail),
     setup_call_cleanup(open_string(HtmlDoc, In),
                        load_html(stream(In), Dom, []),
                        close(In)),
     with_output_to(string(Help), html_text(Dom)).
+:- endif.
 predicate_help(HerePath, Pred, Help) :-
     xref_source(HerePath),
     name_callable(Pred, Callable),
@@ -439,4 +443,3 @@ find_containing_term(Offset, [_|Ts], [_|Ps], T, P) :-
 unlimited(Nonterminal) -->
     call(Nonterminal),
     unlimited(Nonterminal).
-

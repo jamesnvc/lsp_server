@@ -73,4 +73,19 @@ test('finding dcg',
     ),
     ordered_locations(Locations0, Locations).
 
+test('help at position',
+    [ true( Help =@= 'succ(?Int1, ?Int2)
+Availability: built-in
+
+
+True if Int2 = Int1 + 1 and Int1 ≥.  At least  one of  the arguments
+must be instantiated to a natural number. This predicate  raises the
+domain error not_less_than_zero if called  with a  negative integer.
+E.g.  succ(X,  0)  fails silently  and succ(X,  -1) raises  a domain
+error.') ]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
+    help_at_position(InputFile, 38, 5, Help).
+
 :- end_tests(utils).
