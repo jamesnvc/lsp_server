@@ -12,6 +12,8 @@
 
 :- begin_tests(utils).
 
+:- encoding(utf8).
+
 ordered_locations(Ds0, Ds) :-
     maplist([D, SL-D]>>( get_dict(range, D, Range),
                          get_dict(start, Range, Start),
