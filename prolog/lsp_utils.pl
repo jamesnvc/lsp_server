@@ -361,7 +361,7 @@ clause_in_file_at_position(Clause, Path, Position) :-
     xref_source(Path),
     findall(Op, xref_op(Path, Op), Ops),
     setup_call_cleanup(
-        open(Path, read, Stream, []),
+        open(Path, read, Stream, [ newline(posix) ]),
         clause_at_position(Stream, Ops, Clause, Position),
         close(Stream)
     ).
