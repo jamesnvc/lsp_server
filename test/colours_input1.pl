@@ -7,6 +7,7 @@
 ]).
 
 foo(X) :-
+    Foo = 1,
 	maplist(is_list, [[aaaaaaaa], 1, _]), % foo bar
     % aoeu aoeu snth
     maplist(succ, [1,3,3], X).
