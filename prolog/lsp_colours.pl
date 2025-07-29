@@ -117,26 +117,34 @@ colour_term_to_tuple(Stream, Dict, LastOffset, LastLine, LastChar), R -->
         mods_mask(Mods, ModMask) )
       -> Seek is NewOffset - LastOffset,
          Offset = NewOffset,
-         setup_call_cleanup(open_null_stream(NullStream),
-                            ( set_stream(NullStream, newline(posix)),
-                              copy_stream_data(Stream, NullStream, Seek) ),
-                            close(NullStream)),
-         stream_property(Stream, position(Pos)),
-         stream_position_data(line_count, Pos, Line),
-         % can't use line_position, because it counts tabs as 8 characters, which throws things off
-         % stream_position_data(line_position, Pos, Char),
-         line_position_characters(Stream, Pos, Char),
+         stream_seek_line_position(Stream, Seek, Line, Char),
          ( Line == LastLine
          -> DeltaLine = 0,
             DeltaStart is Char - LastChar
          ; DeltaLine is Line - LastLine,
-           DeltaStart = Char  ),
+           DeltaStart = Char ),
          R = [DeltaLine, DeltaStart, Len, TypeCode, ModMask]
       ; R = [],
         Offset = LastOffset, Line = LastLine, Char = LastChar
     },
     colour_term_to_tuple(Stream, Dict, Offset, Line, Char).
 colour_term_to_tuple(_, _, _, _, _) --> [].
+
+%! stream_offset_line_position(+Stream, +Seek, -Line, -Char) is det.
+%
+%  Advance Stream by Seek characters, then Line will be
+%  the current line number that Stream is now at and Char is the
+%  position within the line.
+stream_seek_line_position(Stream, Seek, Line, LineChar) :-
+    setup_call_cleanup(open_null_stream(NullStream),
+                       ( set_stream(NullStream, newline(posix)),
+                         copy_stream_data(Stream, NullStream, Seek) ),
+                       close(NullStream)),
+    stream_property(Stream, position(Pos)),
+    stream_position_data(line_count, Pos, Line),
+    % can't use line_position, because it counts tabs as 8 characters, which throws things off
+    % stream_position_data(line_position, Pos, Char),
+    line_position_characters(Stream, Pos, LineChar).
 
 line_position_characters(Stream, Pos, Char) :-
     stream_position_data(char_count, Pos, StartChar),
