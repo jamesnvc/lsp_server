@@ -69,8 +69,8 @@ token_types_dict(Dict) :-
 
 %! file_colours(+File, -Colours) is det.
 %
-%  True when =Colours= is a list of colour information
-%  corresponding to the file =File=.
+%  True when Colours is a list of colour information
+%  corresponding to the file File.
 file_colours(File, Tuples) :-
     file_colours_helper(File, Colours0),
     sort(2, @=<, Colours0, Colours),
@@ -78,8 +78,8 @@ file_colours(File, Tuples) :-
 
 %! file_range_colours(+File, +Start, +End, -Colours) is det.
 %
-%  True when =Colours= is a list of colour information corresponding
-%  to file =File= covering the terms between =Start= and =End=. Note
+%  True when Colours is a list of colour information corresponding
+%  to file File covering the terms between Start and End. Note
 %  that it may go beyond either bound.
 file_range_colours(File, Start, End, Tuples) :-
     file_term_colours_helper(File, Start, End, Colours0),
@@ -94,8 +94,8 @@ file_stream(File, S) :-
 
 %! flatten_colour_terms(+File, +ColourTerms, -Nums) is det.
 %
-%  Convert the list of =ColourTerms= like =colour(Category, Start,
-%  Length)= to a flat list of numbers in the format that LSP expects.
+%  Convert the list of ColourTerms like =colour(Category, Start, Length)=
+%  to a flat list of numbers Nums in the format that LSP expects.
 %
 %  @see https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#textDocument_semanticTokens
 flatten_colour_terms(File, ColourTerms, Nums) :-
@@ -230,7 +230,7 @@ mods_mask([Mod|Mods], Mask0, Mask) :-
 
 %! file_colours_helper(+Queue, +File) is det.
 %
-%  Use =prolog_colourise_stream/3= to accumulate a list of colour
+%  Use prolog_colourise_stream/3 to accumulate a list of colour
 %  terms.
 file_colours_helper(File, Info) :-
     Acc = acc([]),
