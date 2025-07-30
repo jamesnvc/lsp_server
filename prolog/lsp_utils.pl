@@ -25,10 +25,10 @@ source and stuff.
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help)). % help_text/2 if new, help_html/3 & help_objects/3 if old
-:- use_module(library(lynx/html_text), [html_text/1]).
+:- use_module(library(lynx/html_text), [html_text/1]). % only needed with old library(help)
 :- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
-:- use_module(library(sgml), [load_html/3]).
+:- use_module(library(sgml), [load_html/3]). % only needed with old library(help)
 :- use_module(library(yall)).
 
 :- include('_lsp_path_add.pl').
