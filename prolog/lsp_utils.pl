@@ -21,6 +21,7 @@ source and stuff.
 
 :- use_module(library(apply_macros)).
 :- use_module(library(apply), [maplist/3, exclude/3]).
+:- use_module(library(dcg/basics), [blanks//0]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help)). % help_text/2 if new, help_html/3 & help_objects/3 if old
@@ -203,7 +204,25 @@ relative_ref_location(_, Goal, imported(Path), Location) :-
 help_at_position(Path, Line1, Char0, S) :-
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     predicate_help(Path, Clause, S0),
-    format_help(S0, S).
+    maybe_move_path(Path, S0, S1),
+    format_help(S1, S).
+
+%! maybe_move_path(+Path:string, +Help0:string, -Help:string) is det.
+%
+%  If Help0 starts with Path (as it would if it is the help for a
+%  locally defined predicate), Help is the text of Help0 but with Path
+%  moved to the end. This gives better hover-help for local predicates
+%  (since, in Emacs at least, it just shows the first line in the
+%  message area on hover).
+maybe_move_path(Path, Help0, Help) :-
+    string_concat(Path, "\n\n", Path1),
+    string_concat(Path1, Help1, Help0), !,
+    format(string(Help), "~w~n~n~w", [Help1, Path]).
+maybe_move_path(_, Help, Help).
+
+blank_string(S) :-
+    string_codes(S, Cs),
+    phrase(blanks, Cs, []).
 
 %! format_help(+Help0, -Help1) is det.
 %
@@ -212,7 +231,7 @@ format_help(HelpFull, Help) :-
     split_string(HelpFull, "\n", " ", Lines0),
     exclude([Line]>>string_concat("Availability: ", _, Line),
             Lines0, Lines1),
-    exclude(=(""), Lines1, Lines2),
+    exclude(blank_string, Lines1, Lines2),
     Lines2 = [HelpShort|_],
     split_string(HelpFull, "\n", " ", HelpLines),
     selectchk(HelpShort, HelpLines, "", HelpLines0),
