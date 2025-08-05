@@ -1,5 +1,7 @@
 * Prolog Language server
 
+/Recent development has been sponsored by [[https://logicmoo.org][LogicMoo]] - Thank you!/
+
 Still a work-in-progress -- please open an issue if you have any issues or feature requests!.
 
 Currently supports:
