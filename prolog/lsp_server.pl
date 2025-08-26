@@ -208,7 +208,7 @@ handle_msg("initialize", Msg,
     _{id: Id, params: Params} :< Msg, !,
     ( Params.rootUri \== null
     -> ( url_path(Params.rootUri, RootPath),
-         directory_source_files(RootPath, Files, [recursive(true)]),
+         directory_source_files(RootPath, Files, [recursive(true), if(true)]),
          maplist([F]>>assert(loaded_source(F)), Files) )
     ; true ),
     server_capabilities(ServerCapabilities).
