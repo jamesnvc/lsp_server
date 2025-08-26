@@ -35,6 +35,7 @@ The main entry point for the Language Server implementation.
                                  token_modifiers/1]).
 :- use_module(lsp(lsp_formatter), [file_format_edits/2]).
 :- use_module(lsp(lsp_highlights), [highlights_at_position/3]).
+:- use_module(lsp(lsp_source), [loaded_source/1]).
 
 main :-
     set_prolog_flag(debug_on_error, false),
@@ -200,8 +201,6 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                                                        changeNotifications: true}}}) :-
     token_types(TokenTypes),
     token_modifiers(TokenModifiers).
-
-:- dynamic loaded_source/1.
 
 % messages (with a response)
 handle_msg("initialize", Msg,
