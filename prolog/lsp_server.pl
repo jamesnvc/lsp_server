@@ -274,7 +274,7 @@ handle_msg("textDocument/references", Msg, _{id: Id, result: Locations}) :-
           url_path(DocUri, Doc),
           called_at(Doc, Clause, Locs0),
           % handle the case where Caller = imported(Path)?
-          maplist([D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locs1),
+          maplist({DocUri}/[D0, D]>>put_dict(uri, D0, DocUri, D), Locs0, Locs1),
           member(Location, Locs1)
         ),
         Locations0), !,
