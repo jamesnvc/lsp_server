@@ -79,11 +79,13 @@ definition_location_in(Doc, Callable, Location) :-
           get_dict(subterm, TermPos, SubTermPos0),
           SubTermPos0 = term_position(_, _, FFrom, FTo, _)
       ) ),
-    file_offset_line_position(LineCharRange, FFrom, StartLine, StartChar),
-    file_offset_line_position(LineCharRange, FTo, EndLine, EndChar),
+    file_offset_line_position(LineCharRange, FFrom, StartLine1, StartChar),
+    succ(StartLine0, StartLine1),
+    file_offset_line_position(LineCharRange, FTo, EndLine1, EndChar),
+    succ(EndLine0, EndLine1),
     Location = @{uri: DocUri,
-                 range: @{start: @{line: StartLine, character: StartChar},
-                          end: @{line: EndLine, character: EndChar}}}.
+                 range: @{start: @{line: StartLine0, character: StartChar},
+                          end: @{line: EndLine0, character: EndChar}}}.
 
 clause_exports(Clause, Locations) :-
     name_callable(Clause, Callable),
