@@ -48,10 +48,10 @@ singleton_warning_response(VarPoses, VarName) -->
       get_assoc(VarName, VarPoses, [position(Line, Char)]),
       EndChar is Char + VarLen,
       format(string(Msg), "Singleton variable ~w", [VarName]) },
-    [ _{severity: 2,
+    [ @{severity: 2,
         source: "prolog_xref",
-        range: _{start: _{line: Line, character: Char},
-                 end:   _{line: Line, character: EndChar}},
+        range: @{start: @{line: Line, character: Char},
+                 end:   @{line: Line, character: EndChar}},
         message: Msg
     } ].
 
@@ -64,7 +64,7 @@ error_expansion(Path, e(Term, warning, _Lines, Line, _Char)) -->
     !,
     { usemod_filespec_position(Path, Line, FileSpec, Span),
       format(string(Msg), "Module `~p` not found", [FileSpec]) },
-    [ _{severity: 2,
+    [ @{severity: 2,
         source: "prolog_xref",
         range: Span,
         message: Msg } ].
@@ -76,10 +76,10 @@ error_expansion(_Path, e(_Term, error, Lines, _, _)) -->
       -> format(string(Msg), Fmt, Params)
       ;  text_to_string(Msg0, Msg) ),
       succ(Line0, Line1), ( succ(Col0, Col1) ; Col0 = 0 ) },
-    [_{severity: 1,
+    [@{severity: 1,
        source: "prolog_xref",
-       range: _{start: _{line: Line0, character: Col0},
-                end:   _{line: Line1, character: 0}},
+       range: @{start: @{line: Line0, character: Col0},
+                end:   @{line: Line1, character: 0}},
        message: Msg
     }].
 error_expansion(Path, e(_Term, Kind, Lines, _, _)) -->
@@ -89,10 +89,10 @@ error_expansion(Path, e(_Term, Kind, Lines, _, _)) -->
       atomic_list_concat(Msgs, Msg),
       succ(Line0, Line1),
       ( succ(Char0, Char1) ; Char0 = 0 ) },
-    [_{severity: Level,
+    [@{severity: Level,
        source: "prolog_xref",
-       range: _{start: _{line: Line0, character: Char0},
-                end:   _{line: Line1, character: 0}},
+       range: @{start: @{line: Line0, character: Char0},
+                end:   @{line: Line1, character: 0}},
        message: Msg
     }].
 % Skip unhandleable ones:

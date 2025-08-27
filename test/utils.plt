@@ -22,16 +22,16 @@ ordered_locations(Ds0, Ds) :-
     maplist([_-D, D]>>true, Ds2, Ds).
 
 test('Basic finding',
-     [ true( Locations =@= [_{range: _{start: _{line: 8, character: 4},
-                                       end: _{line: 8, character: 29}}},
-                            _{range: _{start: _{line: 28, character: 4},
-                                       end: _{line: 28, character: 29}}},
-                            _{range: _{start: _{line: 29, character: 4},
-                                       end: _{line: 29, character: 29}}},
-                            _{range: _{start: _{line: 35, character: 4},
-                                       end: _{line: 35, character: 29}}},
-                            _{range: _{start: _{line: 36, character: 4},
-                                       end: _{line: 36, character: 29}}}
+     [ true( Locations =@= [@{range: @{start: @{line: 8, character: 4},
+                                       end: @{line: 8, character: 29}}},
+                            @{range: @{start: @{line: 28, character: 4},
+                                       end: @{line: 28, character: 29}}},
+                            @{range: @{start: @{line: 29, character: 4},
+                                       end: @{line: 29, character: 29}}},
+                            @{range: @{start: @{line: 35, character: 4},
+                                       end: @{line: 35, character: 29}}},
+                            @{range: @{start: @{line: 36, character: 4},
+                                       end: @{line: 36, character: 29}}}
                            ] ) ]) :-
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
@@ -44,10 +44,10 @@ test('Basic finding',
     ordered_locations(Locations0, Locations).
 
 test('Finding called-by from meta-calls',
-     [ true( Locations =@= [_{range: _{start: _{line: 20, character: 7},
-                                       end: _{line: 20, character: 25}}},
-                            _{range: _{start: _{line: 25, character: 12},
-                                       end: _{line: 25, character: 30}}}] ) ]) :-
+     [ true( Locations =@= [@{range: @{start: @{line: 20, character: 7},
+                                       end: @{line: 20, character: 25}}},
+                            @{range: @{start: @{line: 25, character: 12},
+                                       end: @{line: 25, character: 30}}}] ) ]) :-
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
@@ -59,12 +59,12 @@ test('Finding called-by from meta-calls',
     ordered_locations(Locations0, Locations).
 
 test('finding dcg',
-     [ true( Locations =@= [_{range: _{start: _{line: 18, character: 4},
-                                       end: _{line: 18, character: 10}}},
-                            _{range: _{start: _{line: 20, character: 4},
-                                       end: _{line: 20, character: 10}}},
-                            _{range: _{start: _{line: 23, character: 18},
-                                       end: _{line: 23, character: 24}}}] ) ]) :-
+     [ true( Locations =@= [@{range: @{start: @{line: 18, character: 4},
+                                       end: @{line: 18, character: 10}}},
+                            @{range: @{start: @{line: 20, character: 4},
+                                       end: @{line: 20, character: 10}}},
+                            @{range: @{start: @{line: 23, character: 18},
+                                       end: @{line: 23, character: 24}}}] ) ]) :-
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './utils_input2.pl'),

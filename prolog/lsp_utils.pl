@@ -57,8 +57,8 @@ called_at(Path, Clause, Locations) :-
     xref_called(Path, Callable, _By, _, CallerLine),
     % we couldn't find the definition, but we know it's in that form, so give that at least
     succ(CallerLine0, CallerLine),
-    Locations = [_{range: _{start: _{line: CallerLine0, character: 0},
-                            end: _{line: CallerLine, character: 0}}}].
+    Locations = [@{range: @{start: @{line: CallerLine0, character: 0},
+                            end: @{line: CallerLine, character: 0}}}].
 
 called_at_(Path, Clause, Locations) :-
     name_callable(Clause, Callable),
@@ -184,12 +184,12 @@ name_callable(Name/Arity, Callable) :-
 %  called_at/3), =Location= is a dictionary suitable for sending as an
 %  LSP response indicating the position in a file of =Goal=.
 relative_ref_location(Here, _, position(Line0, Char1),
-                      _{uri: Here, range: _{start: _{line: Line0, character: Char1},
-                                            end: _{line: Line1, character: 0}}}) :-
+                      @{uri: Here, range: @{start: @{line: Line0, character: Char1},
+                                            end: @{line: Line1, character: 0}}}) :-
     !, succ(Line0, Line1).
 relative_ref_location(Here, _, local(Line1),
-                      _{uri: Here, range: _{start: _{line: Line0, character: 1},
-                                            end: _{line: NextLine, character: 0}}}) :-
+                      @{uri: Here, range: @{start: @{line: Line0, character: 1},
+                                            end: @{line: NextLine, character: 0}}}) :-
     !, succ(Line0, Line1), succ(Line1, NextLine).
 relative_ref_location(_, Goal, imported(Path), Location) :-
     url_path(ThereUri, Path),
@@ -343,8 +343,8 @@ usemod_filespec_position(Path, Line, FileSpec, Position) :-
     file_offset_line_position(LineCharRange, End, EndLine1, EndCol),
     succ(StartLine, StartLine1),
     succ(EndLine, EndLine1),
-    Position = _{start: _{line: StartLine, character: StartCol},
-                 end:   _{line: EndLine,   character: EndCol  } }.
+    Position = @{start: @{line: StartLine, character: StartCol},
+                 end:   @{line: EndLine,   character: EndCol  } }.
 
 matches_use_module(FileSpec, ( :- use_module(FileSpec) )).
 matches_use_module(FileSpec, ( :- use_module(FileSpec, _) )).

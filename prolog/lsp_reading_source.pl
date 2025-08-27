@@ -87,7 +87,7 @@ read_term_positions(Path, TermsWithPositions) :-
                                                       syntax_errors(dec10)]),
           maplist([Name=Var]>>( Var = '$var'(Name) ), VarNames),
           arg(1, Acc, Lst),
-          nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
+          nb_setarg(1, Acc, [@{term: Term, pos: TermPos, subterm: SubTermPos,
                                varible_names: VarNames, comments: Comments}|Lst]),
           Term = end_of_file, !
         ),
@@ -127,7 +127,7 @@ read_term_positions(Path, Start, End, TermsWithPositions) :-
           TermStart >= Start,
           maplist([Name=Var]>>( Var = '$var'(Name) ), VarNames),
           arg(1, Acc, Lst),
-          nb_setarg(1, Acc, [_{term: Term, pos: TermPos, subterm: SubTermPos,
+          nb_setarg(1, Acc, [@{term: Term, pos: TermPos, subterm: SubTermPos,
                                varible_names: VarNames, comments: Comments}|Lst]),
           arg(2, SubTermPos, TermEnd),
           once(( Term = end_of_file ; TermEnd >= End )), !
@@ -194,15 +194,15 @@ position_to_match(LineCharRange, found_at(_, From-To), Match) :- !,
     file_offset_line_position(LineCharRange, To, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
     succ(ToLine0, ToLine1),
-    Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
-                       end: _{line: ToLine0, character: ToCharacter}}}.
+    Match = @{range: @{start: @{line: FromLine0, character: FromCharacter},
+                       end: @{line: ToLine0, character: ToCharacter}}}.
 position_to_match(LineCharRange, found_at(_, term_position(_, _, FFrom, FTo, _)), Match) :-
     file_offset_line_position(LineCharRange, FFrom, FromLine1, FromCharacter),
     file_offset_line_position(LineCharRange, FTo, ToLine1, ToCharacter),
     succ(FromLine0, FromLine1),
     succ(ToLine0, ToLine1),
-    Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
-                       end: _{line: ToLine0, character: ToCharacter}}}.
+    Match = @{range: @{start: @{line: FromLine0, character: FromCharacter},
+                       end: @{line: ToLine0, character: ToCharacter}}}.
 
 :- meta_predicate find_in_term_with_positions(2, +, +, -, -).
 
