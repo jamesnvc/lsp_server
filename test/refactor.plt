@@ -26,8 +26,8 @@ test('Renaming predicate across project',
                                            range: @{end: @{character:42, line:0},
                                                     start: @{character:24, line:0}}}],
                              ServerUri-[@{newText:handle_document_changes,
-                                          range: @{end: @{character:22, line:360},
-                                                   start: @{character:4, line:360}}},
+                                          range: @{end: @{character:22, line:354},
+                                                   start: @{character:4, line:354}}},
                                         @{newText:handle_document_changes,
                                           range: @{end: @{character:51, line:29},
                                                    start: @{character:33, line:29}}}]] ) ]) :-
@@ -41,7 +41,7 @@ test('Renaming predicate across project',
     directory_source_files(ProjectDir, ProjectFiles, [recursive(true), if(true)]),
     forall(member(F, ProjectFiles), assertz(lsp_source:loaded_source(F))),
     % fragile here - change line/char to be on ⤵ 'handle_doc_changes' in handle_msg/3 clause for didChange
-    rename_at_location(ServerUri, line_char(361, 11), 'handle_document_changes', Edits),
+    rename_at_location(ServerUri, line_char(355, 11), 'handle_document_changes', Edits),
     dict_pairs(Edits, _, EditsPairs).
 
 :- end_tests(refactor).
