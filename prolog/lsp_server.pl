@@ -33,6 +33,7 @@ The main entry point for the Language Server implementation.
                                  file_range_colours/4,
                                  token_types/1,
                                  token_modifiers/1]).
+:- use_module(lsp(lsp_refactor), [rename_at_location/4]).
 :- use_module(lsp(lsp_formatter), [file_format_edits/2]).
 :- use_module(lsp(lsp_highlights), [highlights_at_position/3]).
 :- use_module(lsp(lsp_source), [loaded_source/1]).
@@ -311,15 +312,8 @@ handle_msg("textDocument/rename", Msg, _{id: Id, result: Result}) :-
     _{textDocument: _{uri: Uri},
       position: _{line: Line0, character: Char0},
       newName: NewName} :< Params,
-    url_path(Uri, Path),
     succ(Line0, Line1),
-    % highlights_at_position gives us the location & span of the variables
-    % using the 4-arity version instead of 3 so we can specify it should only match a variable
-    lsp_highlights:highlights_at_position(Path, line_char(Line1, Char0), '$var'(_),
-                                          Positions),
-    maplist([P0, P1]>>put_dict(newText, P0, NewName, P1), Positions, Edits),
-    atom_string(AUri, Uri), % dict key must be an atom
-    dict_create(Changes, _, [AUri=Edits]),
+    rename_at_location(Uri, line_char(Line1, Char0), NewName, Changes),
     Result = _{changes: Changes}.
 handle_msg("textDocument/rename", Msg, _{id: Id, error: _{message: "Nothing that can be renamed here.",
                                                           code: -32602}}) :-
