@@ -1,3 +1,4 @@
+#!/usr/bin/env swipl
 :- module(make_release, []).
 
 :- use_module(library(readutil), [read_file_to_terms/3,
