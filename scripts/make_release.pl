@@ -38,12 +38,24 @@ git_commit_and_tag(NewVersion) :-
     format(atom(PushCmd), 'git push origin master v~w', [NewVersion]),
     shell(PushCmd).
 
+download_pattern_format_string(DownloadURLPat, FormatString) :-
+    string_concat("https://github.com", _, DownloadURLPat), !,
+    % Github download locations are special-cased
+    string_concat(Prefix, "releases/*.zip", DownloadURLPat),
+    string_concat(Prefix, "archive/refs/tags/v~w.zip", FormatString).
+download_pattern_format_string(DownloadURLPat, FormatString) :-
+    file_name_extension(Base0, Ext, DownloadURLPat),
+    string_concat(Base, "*", Base0),
+    format(string(FormatString), "~s~s.~s", [Base, "v~w", Ext]).
+
 register_new_pack(NewVersion) :-
-    ( pack_remove(lsp_server) -> true ; true ),
-    format(atom(Url),
-           "https://github.com/jamesnvc/lsp_server/archive/refs/tags/v~w.zip",
-           [NewVersion]),
-    pack_install(lsp_server, [url(Url), interactive(false)]).
+    read_file_to_terms('pack.pl', PackTerms, []),
+    memberchk(name(ProjectName), PackTerms),
+    memberchk(download(DownloadURLPattern), PackTerms),
+    download_pattern_format_string(DownloadURLPattern, URLFormat),
+    ( pack_remove(ProjectName) -> true ; true ),
+    format(atom(Url), URLFormat, [NewVersion]),
+    pack_install(ProjectName, [url(Url), interactive(false)]).
 
 main(Args) :-
     ( Args = [ReleaseType], increment_version(ReleaseType, [0, 0, 0], _)
