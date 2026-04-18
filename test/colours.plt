@@ -38,5 +38,16 @@ test('Basic highlighting (Windows)',
     relative_file_name(InputFile, ThisFile, './colours_input1_win.pl'),
     file_colours(InputFile, Colours), writeln(Colours).
 
+test('Highlighting with Cyrillic content',
+    [ condition(\+ current_prolog_flag(windows, true) ),
+      true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
+                        2,0,13,17,0,1,0,3,12,1,0,4,1,8,0,0,3,2,21,1,1,4,1,8,0,0,
+                        2,1,12,512,0,2,10,18,0,0,10,1,21,0,1,4,7,12,512,0,8,1,8,
+                        0,0,2,1,21,0]) ]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './colours_input_cyr.pl'),
+    file_colours(InputFile, Colours).
+
 
 :- end_tests(colours).

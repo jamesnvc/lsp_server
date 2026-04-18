@@ -13,6 +13,7 @@ Module with predicates for colourizing Prolog code, via library(prolog_colour).
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [numlist/3, nth0/3]).
+:- use_module(library(readutil), [read_file_to_codes/3]).
 :- use_module(library(prolog_colour), [prolog_colourise_stream/3,
                                        prolog_colourise_term/4]).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
@@ -97,72 +98,108 @@ file_stream(File, S) :-
 %  Convert the list of ColourTerms like =colour(Category, Start, Length)=
 %  to a flat list of numbers Nums in the format that LSP expects.
 %
+%  Offsets coming from prolog_colourise_stream/3 are codepoint counts;
+%  converting them to (line, column) pairs is done via a precomputed
+%  list of line-start offsets rather than by repositioning the stream.
+%  seek/4 on text streams is only guaranteed for fixed-size encodings,
+%  so any backward seek on UTF-8 can land inside a multibyte sequence
+%  and corrupt the character count.
+%
 %  @see https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#textDocument_semanticTokens
 flatten_colour_terms(File, ColourTerms, Nums) :-
     token_types_dict(TokenDict),
-    setup_call_cleanup(
-        file_stream(File, S),
-        ( seek(S, 0, bof, _),
-          phrase(colour_term_to_tuple(S, TokenDict, 0, 1, 0),
-                 ColourTerms,
-                 Nums)
-        ),
-        close(S)
+    source_codes(File, Codes),
+    line_start_offsets(Codes, Offsets),
+    InitialPosition = position(Offsets, 1, 0),
+    InitialDeltaRef = delta_ref(1, 0),
+    phrase(emit_semantic_tokens(TokenDict, InitialPosition, InitialDeltaRef),
+           ColourTerms,
+           Nums).
+
+%! source_codes(+File, -Codes) is det.
+%
+%  Codes is the character-code list of the source being highlighted,
+%  taken from the in-memory edit buffer if the client has sent changes,
+%  otherwise read from disk. Newlines are preserved as-is so that the
+%  offsets match what prolog_colourise_stream/3 sees.
+source_codes(File, Codes) :-
+    ( doc_text(File, Buffer)
+    -> ensure_codes(Buffer, Codes)
+    ;  read_file_to_codes(File, Codes, [newline(posix)])
     ).
 
-colour_term_to_tuple(Stream, Dict, LastOffset, LastLine, LastChar), R -->
-    [colour(Type, NewOffset, Len)], !,
-    { ( colour_type(Type, TypeCategory, Mods),
-        get_dict(TypeCategory, Dict, TypeCode),
-        mods_mask(Mods, ModMask) )
-      -> Seek is NewOffset - LastOffset,
-         Offset = NewOffset,
-         stream_seek_line_position(Stream, Seek, Line, Char),
-         ( Line == LastLine
-         -> DeltaLine = 0,
-            DeltaStart is Char - LastChar
-         ; DeltaLine is Line - LastLine,
-           DeltaStart = Char ),
-         R = [DeltaLine, DeltaStart, Len, TypeCode, ModMask]
-      ; R = [],
-        Offset = LastOffset, Line = LastLine, Char = LastChar
-    },
-    colour_term_to_tuple(Stream, Dict, Offset, Line, Char).
-colour_term_to_tuple(_, _, _, _, _) --> [].
+ensure_codes(Codes, Codes) :- is_list(Codes), !.
+ensure_codes(String, Codes) :- string_codes(String, Codes).
 
-%! stream_offset_line_position(+Stream, +Seek, -Line, -Char) is det.
+%! line_start_offsets(+Codes, -Offsets) is det.
 %
-%  Advance Stream by Seek characters, then Line will be
-%  the current line number that Stream is now at and Char is the
-%  position within the line.
-stream_seek_line_position(Stream, Seek, Line, LineChar) :-
-    setup_call_cleanup(open_null_stream(NullStream),
-                       ( set_stream(NullStream, newline(posix)),
-                         copy_stream_data(Stream, NullStream, Seek) ),
-                       close(NullStream)),
-    stream_property(Stream, position(Pos)),
-    stream_position_data(line_count, Pos, Line),
-    % can't use line_position, because it counts tabs as 8 characters, which throws things off
-    % stream_position_data(line_position, Pos, Char),
-    line_position_characters(Stream, Pos, LineChar).
+%  Offsets is the ordered list of codepoint offsets at which line 2,
+%  line 3, ... begin. Line 1 implicitly begins at offset 0 and is not
+%  represented.
+line_start_offsets(Codes, Offsets) :-
+    line_start_offsets_(Codes, 0, Offsets).
 
-line_position_characters(Stream, Pos, Char) :-
-    stream_position_data(char_count, Pos, StartChar),
-    stream_position_data(line_count, Pos, StartLine),
-    ( StartLine > 1
-    -> ( repeat,
-         seek(Stream, -1, current, _),
-         peek_code(Stream, 0'\n), !,
-         get_code(Stream, _) )
-    ; seek(Stream, 0, bof, _) ),
-    character_count(Stream, StartOfLine),
-    ( repeat,
-      character_count(Stream, CharHere),
-      get_code(Stream, _),
-      CharHere >= StartChar, !
+line_start_offsets_([], _, []).
+line_start_offsets_([0'\n|Rest], Offset, [NextLineStart|More]) :- !,
+    NextLineStart is Offset + 1,
+    line_start_offsets_(Rest, NextLineStart, More).
+line_start_offsets_([_|Rest], Offset, More) :-
+    NextOffset is Offset + 1,
+    line_start_offsets_(Rest, NextOffset, More).
+
+%! emit_semantic_tokens(+TypeDict, +Position, +DeltaRef)//
+%
+%  Emit the LSP semantic-token 5-tuple for each colour term in the
+%  input. Position is the line-offset lookup cursor advancing forward
+%  through the source; DeltaRef is the reference point for delta
+%  encoding.
+emit_semantic_tokens(TypeDict, Position, DeltaRef), Tuple -->
+    [colour(Category, Offset, Length)], !,
+    { locate(Position, Offset, PositionAfter, Line, Column),
+      ( lsp_token_of(Category, TypeDict, TypeCode, Modifiers)
+      -> tuple_at(DeltaRef, Line, Column, Length, TypeCode, Modifiers, Tuple),
+         DeltaRefAfter = delta_ref(Line, Column)
+      ;  Tuple = [],
+         DeltaRefAfter = DeltaRef
+      )
+    },
+    emit_semantic_tokens(TypeDict, PositionAfter, DeltaRefAfter).
+emit_semantic_tokens(_, _, _) --> [].
+
+%! locate(+Position, +Offset, -PositionAfter, -Line, -Column) is det.
+%
+%  Advance Position past any line boundaries that precede Offset.
+%  PositionAfter's line and line-start are where Offset falls; Line and
+%  Column (both 1-indexed / 0-indexed respectively) describe that
+%  location.
+locate(position([NextLineStart|Rest], Line, _), Offset, PositionAfter, FinalLine, Column) :-
+    Offset >= NextLineStart, !,
+    NextLine is Line + 1,
+    locate(position(Rest, NextLine, NextLineStart), Offset, PositionAfter, FinalLine, Column).
+locate(position(Pending, Line, LineStart), Offset,
+       position(Pending, Line, LineStart), Line, Column) :-
+    Column is Offset - LineStart.
+
+%! lsp_token_of(+ColourCategory, +TypeDict, -TypeCode, -Modifiers) is semidet.
+%
+%  Fails when the colour category has no LSP token mapping, which
+%  causes the current term to be skipped without emitting a tuple.
+lsp_token_of(Category, TypeDict, TypeCode, Modifiers) :-
+    colour_type(Category, TokenName, Modifiers),
+    get_dict(TokenName, TypeDict, TypeCode).
+
+%! tuple_at(+DeltaRef, +Line, +Column, +Length, +TypeCode, +Modifiers, -Tuple) is det.
+%
+%  Tuple is the LSP 5-number encoding [DeltaLine, DeltaStart, Length,
+%  TypeCode, ModifierMask] for a token at (Line, Column), with deltas
+%  taken against DeltaRef.
+tuple_at(delta_ref(RefLine, RefColumn), Line, Column, Length, TypeCode, Modifiers,
+         [DeltaLine, DeltaStart, Length, TypeCode, ModifierMask]) :-
+    ( Line == RefLine
+    -> DeltaLine = 0, DeltaStart is Column - RefColumn
+    ;  DeltaLine is Line - RefLine, DeltaStart = Column
     ),
-    Char is max(0, CharHere - StartOfLine),
-    set_stream_position(Stream, Pos).
+    mods_mask(Modifiers, ModifierMask).
 
 colour_type(directive,                namespace, []).
 
