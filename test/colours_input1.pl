@@ -2,7 +2,7 @@
 
 :- use_module(library(apply), [
     maplist/2, % foo bar baz
-	maplist/3, % foo bar baz
+	maplist/3, % foo bar baБ
     foldl/4
 ]).
 
