@@ -147,7 +147,7 @@ stream_seek_line_position(Stream, Seek, Line, LineChar) :-
     line_position_characters(Stream, Pos, LineChar).
 
 line_position_characters(Stream, Pos, Char) :-
-    stream_position_data(char_count, Pos, StartChar),
+    stream_position_data(byte_count, Pos, StartChar),
     stream_position_data(line_count, Pos, StartLine),
     ( StartLine > 1
     -> ( repeat,
@@ -155,9 +155,9 @@ line_position_characters(Stream, Pos, Char) :-
          peek_code(Stream, 0'\n), !,
          get_code(Stream, _) )
     ; seek(Stream, 0, bof, _) ),
-    character_count(Stream, StartOfLine),
+    byte_count(Stream, StartOfLine),
     ( repeat,
-      character_count(Stream, CharHere),
+      byte_count(Stream, CharHere),
       get_code(Stream, _),
       CharHere >= StartChar, !
     ),
