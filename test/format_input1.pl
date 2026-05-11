@@ -200,4 +200,7 @@ this(A, B) :-
     -> call(B)
     ; A = B).
 
+car(car_11).     car(car_12).
+car(car_21).  car(car_22).  car(car_23).
+
 % end comment
