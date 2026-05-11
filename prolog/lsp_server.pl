@@ -9,7 +9,7 @@ The main entry point for the Language Server implementation.
 :- use_module(library(apply), [maplist/2]).
 :- use_module(library(apply_macros)).
 :- use_module(library(debug), [debug/3, debug/1]).
-:- use_module(library(http/json), [atom_json_dict/3]).
+:- use_module(library(json), [atom_json_dict/3]).
 :- use_module(library(pure_input), [phrase_from_stream/2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [directory_source_files/3]).

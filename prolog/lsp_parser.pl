@@ -9,7 +9,7 @@ Module for parsing the body & headers from an LSP client.
 :- use_module(library(assoc), [list_to_assoc/2, get_assoc/3]).
 :- use_module(library(codesio), [open_codes_stream/2]).
 :- use_module(library(dcg/basics), [string_without//2]).
-:- use_module(library(http/json), [json_read_dict/3]).
+:- use_module(library(json), [json_read_dict/3]).
 
 header(Key-Value) -->
     string_without(":", KeyC), ": ", string_without("\r", ValueC),
