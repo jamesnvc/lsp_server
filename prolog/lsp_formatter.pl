@@ -109,8 +109,8 @@ correct_indentation(State0,
     correct_indentation(State4, InRest, OutRest).
 correct_indentation(State0, [In|InRest], Out) :-
     once((In = term_begin('->', compound, false)
-        ; In = term_begin('*->', compound, false)
-        ; In = term_begin(';', compound, false))),
+         ; In = term_begin('*->', compound, false)
+         ; In = term_begin(';', compound, false))),
     indent_state_top(State0, defn_body_indent), !,
     indent_state_pop(State0, State1),
     paren_state_top(State1, Indent),
@@ -352,12 +352,12 @@ create_edit_list(LineNum, [], [NewLine|NewLines], [Edit|Edits]) :- !,
     create_edit_list(LineNum1, [], NewLines, Edits).
 create_edit_list(LineNum, [OrigLine|OrigRest], [FormattedLine|FormattedRest], Edits) :-
     (   OrigLine \= FormattedLine  % Only create an edit if the line has changed
-      -> string_length(OrigLine, LineLen), %TODO: what should this be?
-         Edit = _{range: _{start: _{line: LineNum, character: 0},
-                           end: _{line: LineNum, character: LineLen}},
-                  newText: FormattedLine},
-         Edits = [Edit|EditRest]
-      ; EditRest = Edits
+    -> string_length(OrigLine, LineLen), %TODO: what should this be?
+       Edit = _{range: _{start: _{line: LineNum, character: 0},
+                         end: _{line: LineNum, character: LineLen}},
+                newText: FormattedLine},
+       Edits = [Edit|EditRest]
+    ; EditRest = Edits
     ),
     succ(LineNum, LineNum1),
     create_edit_list(LineNum1, OrigRest, FormattedRest, EditRest).
