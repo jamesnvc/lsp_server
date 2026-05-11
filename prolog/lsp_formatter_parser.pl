@@ -188,7 +188,8 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
     expand_term_subterms_positions(Parens, Term, Arity, 1, SubPoses,
                                    ExpandedTail0, ExpandedTail1),
     succ(To0, To),
-    ExpandedTail1 = [term_end(To0, To, Parens, TermState)|ExpandedTail2],
+    ( TermState =@= toplevel -> To1 is To + 1 ; To1 = To ),
+    ExpandedTail1 = [term_end(To0, To1, Parens, TermState)|ExpandedTail2],
     maybe_add_comma(TermState, To, ExpandedTail2, ExTail).
 expand_subterm_positions(Term, TermState, string_position(From, To), Expanded, Tail) =>
     Expanded = [string(From, To, Term)|Tail0],

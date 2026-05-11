@@ -15,6 +15,7 @@ Module for formatting Prolog source code
 :- include('_lsp_path_add.pl').
 :- use_module(lsp(lsp_formatter_parser), [ reified_format_for_file/2,
                                            emit_reified/2 ]).
+
 file_format_edits(Path, Edits) :-
     read_file_to_string(Path, OrigText, []),
     split_string(OrigText, "\n", "", OrigLines),
@@ -37,6 +38,7 @@ apply_format_rules(Content, Formatted) :-
 
 formatter_rules -->
     collapse_whitespace,
+    fact_only_one_space,
     commas_exactly_one_space,
     correct_indentation(_{state: [toplevel], column: 0, leading_spaces: [],
                           parens: []}).
@@ -47,6 +49,14 @@ collapse_whitespace([white(A), white(B)|InRest], [white(AB)|OutRest]) :- !,
     collapse_whitespace(InRest, OutRest).
 collapse_whitespace([In|InRest], [In|OutRest]) :-
     collapse_whitespace(InRest, OutRest).
+
+fact_only_one_space([], Out) => Out = [].
+fact_only_one_space([term_end(F, toplevel), white(_), Next|InRest], Out), Next \= newline =>
+    Out = [term_end(F, toplevel), white(1), Next|OutRest],
+    fact_only_one_space(InRest, OutRest).
+fact_only_one_space([Other|InRest], Out) =>
+    Out = [Other|OutRest],
+    fact_only_one_space(InRest, OutRest).
 
 commas_exactly_one_space([], Out) => Out = [].
 commas_exactly_one_space([white(_), comma|InRest], Out) =>
