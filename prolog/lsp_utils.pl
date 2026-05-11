@@ -29,6 +29,7 @@ source and stuff.
 :- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
 :- use_module(library(sgml), [load_html/3]). % only needed with old library(help)
+:- use_module(library(uri), [uri_file_name/2]).
 :- use_module(library(yall)).
 
 :- include('_lsp_path_add.pl').
@@ -142,9 +143,10 @@ url_path(Url, Path) :-
     % on windows, in neovim at least, textDocument URI looks like
     % "file:///C:/foo/bar/baz.pl"; we need to strip off another
     % leading slash to get a valid path
-    atom_concat('file:///', Path, Url), !.
+    uri_file_name(Url, SlashPath),
+    atom_concat('/', Path, SlashPath), !.
 url_path(Url, Path) :-
-    atom_concat('file://', Path, Url).
+    uri_file_name(Url, Path).
 
 defined_at(Path, Name/Arity, Location) :-
     name_callable(Name/Arity, Callable),
