@@ -21,7 +21,8 @@ source and stuff.
 
 :- use_module(library(apply_macros)).
 :- use_module(library(apply), [maplist/3, exclude/3]).
-:- use_module(library(dcg/basics), [blanks//0]).
+:- use_module(library(dcg/basics), [blanks//0, string_without//2, prolog_var_name//1]).
+:- use_module(library(dcg/high_order), [optional//2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
 :- use_module(library(help)). % help_text/2 if new, help_html/3 & help_objects/3 if old
@@ -226,7 +227,7 @@ blank_string(S) :-
     string_codes(S, Cs),
     phrase(blanks, Cs, []).
 
-%! format_help(+Help0, -Help1) is det.
+%! format_help(+Help0:text, -Help1:text) is det.
 %
 %  Reformat help string, so the first line is the signature of the predicate.
 format_help(HelpFull, Help) :-
@@ -238,10 +239,13 @@ format_help(HelpFull, Help) :-
     split_string(HelpFull, "\n", " ", HelpLines),
     selectchk(HelpShort, HelpLines, "", HelpLines0),
     append([HelpShort], HelpLines0, HelpLines1),
-    atomic_list_concat(HelpLines1, "\n", Help).
+    atomic_list_concat(HelpLines1, "\n", Help0),
+    split_string(Help0, "", "\n", [Help1]),
+    atom_string(Help, Help1).
 
 :- if(current_predicate(help_text/2)).
-predicate_help(_, Pred, Help) :- help_text(Pred, Help), !.
+predicate_help(_, Pred, Help) :-
+    help_text(Pred, Help), !.
 :- else.
 predicate_help(_, Pred, Help) :-
     nonvar(Pred),
@@ -260,8 +264,50 @@ predicate_help(HerePath, Pred, Help) :-
     once(xref_comment(Path, Callable, Summary, Comment)),
     pldoc_process:parse_comment(Comment, Path:0, Parsed),
     memberchk(mode(Signature, Mode), Parsed),
-    memberchk(predicate(_, Summary, _), Parsed),
-    format(string(Help), "  ~w is ~w.~n~n~w", [Signature, Mode, Summary]).
+    memberchk(predicate(_, Summary, CommentText), Parsed),
+    comment_variable_names(CommentText, VariableNames),
+    zip_args(Signature, VariableNames, Parameters),
+    format(string(Help), "  ~W is ~w.~n~n~w",
+           [Parameters, [spacing(next_argument)], Mode, Summary]),
+    !.
+
+zip_args(Term, VariableNames, Parameters) :-
+    compound_name_arguments(Term, Name, TypeModes),
+    write_canonical(TypeModes),
+    maplist([TypeMode, VarName, Param]>>(
+                TypeMode =.. [Mode, Type],
+                format(string(Param), "~w~w:~w", [Mode, VarName, Type])
+            ),
+            TypeModes, VariableNames, Combined),
+    compound_name_arguments(Parameters, Name, Combined).
+
+comment_variable_names(CommentText, VariableNames) :-
+    string_codes(CommentText, CommentTextCodes),
+    phrase(comment_variables(VariableNames), CommentTextCodes, _).
+
+comment_variables(VarNames) -->
+    "%!", blanks, string_without("(", _), "(",
+    comment_variables_(VarNames).
+
+comment_variables_([]) --> ")", !.
+comment_variables_([VarName|VarNames]) -->
+    blanks,
+    optional(one_of(["+", "-", "?"], ModeIndicator), [ModeIndicator = missing]), !,
+    prolog_var_name(VarName), blanks,
+    optional(comment_type_indicator(Type), { Type = any }),
+    comment_variables_next(VarNames).
+
+comment_variables_next(VarNames) --> ",", !, comment_variables_(VarNames).
+comment_variables_next([]) --> ")", !.
+
+comment_type_indicator(TypeName) -->
+    ":", string_without(", ", TypeName).
+
+one_of([], _) --> !, { fail }.
+one_of([A|_], A) --> A.
+one_of([_|Others], Other) --> one_of(Others, Other).
+
+
 /*
 predicate_help(_, Pred/_Arity, Help) :-
     help_objects(Pred, dwim, Matches), !,

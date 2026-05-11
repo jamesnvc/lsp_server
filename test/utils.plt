@@ -90,4 +90,11 @@ error.') ]) :-
     relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
     help_at_position(InputFile, 38, 5, Help).
 
+test('hover help',
+    [ true(Help =@= 'output_args(+Rules:list, +State:list, -Ctxt:any, -Statements:any) is unknown.')]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './utils_input1.pl'),
+    help_at_position(InputFile, 44, 0, Help).
+
 :- end_tests(utils).

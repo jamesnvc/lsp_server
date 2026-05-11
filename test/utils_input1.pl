@@ -39,3 +39,11 @@ xposition_to_match(LineCharRange, found_at(_, term_position(_, _, FFrom, FTo, _)
     succ(ToLine0, ToLine1),
     Match = _{range: _{start: _{line: FromLine0, character: FromCharacter},
                        end: _{line: ToLine0, character: ToCharacter}}}.
+
+%! output_args( +Rules:list, +State:list, -Ctxt, -Statements ).
+output_args(
+  Rules,
+  State,
+  Ctxt,
+  Statements
+) :- true.
