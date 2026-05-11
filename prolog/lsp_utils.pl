@@ -200,11 +200,20 @@ relative_ref_location(_, Goal, imported(Path), Location) :-
     xref_defined(Path, Goal, Loc),
     relative_ref_location(ThereUri, Goal, Loc, Location).
 
+xref_source_recursive(S) :-
+    xref_source(S),
+    forall(xref_uses_file(S, Spec, Path),
+           ( xref_current_source(Path)
+           -> true
+           ; debug(lsp(utils), "~w loads ~w @ ~w", [S, Spec, Path]),
+             xref_source(Path) )).
+
 %! help_at_position(+Path:atom, +Line:integer, +Char:integer, -Help:string) is det.
 %
 %  =Help= is the documentation for the term under the cursor at line
 %  =Line=, character =Char= in the file =Path=.
 help_at_position(Path, Line1, Char0, S) :-
+    xref_source_recursive(Path), % recursively xref dependencies to get docs
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
     predicate_help(Path, Clause, S0),
     maybe_move_path(Path, S0, S1),
