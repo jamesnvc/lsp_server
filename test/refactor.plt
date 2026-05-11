@@ -44,4 +44,21 @@ test('Renaming predicate across project',
     rename_at_location(ServerUri, line_char(355, 11), 'handle_document_changes', Edits),
     dict_pairs(Edits, _, EditsPairs).
 
+test('Renaming a variable in predicate',
+     [ true( EditsPairs =@= [ServerUri-[@{newText:'Message',
+                                          range: @{end: @{character:37, line:309},
+                                                   start: @{character:34, line:309}}},
+                                        @{newText:'Message',
+                                          range: @{end: @{character:36, line:310},
+                                                   start: @{character:33, line:310}}}]]) ])  :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(ProjectDir, ThisFile, '../prolog'),
+    directory_file_path(ProjectDir, 'lsp_server.pl', ServerFile),
+    url_path(ServerUri, ServerFile),
+    % fragile here - change line/char to be on ⤵ 'Msg' in handle_msg/3 clause for textDocument/rename
+    rename_at_location(ServerUri, line_char(310, 34), 'Message', Edits),
+    dict_pairs(Edits, _, EditsPairs).
+
+
 :- end_tests(refactor).
