@@ -25,11 +25,14 @@ source and stuff.
 :- use_module(library(dcg/high_order), [optional//2]).
 :- use_module(library(prolog_xref)).
 :- use_module(library(prolog_source), [read_source_term_at_location/3]).
+:- use_module(library(pldoc/doc_process), [is_structured_comment/2]).
+:- use_module(library(pldoc/doc_wiki), [indented_lines/3]).
 :- use_module(library(help)). % help_text/2 if new, help_html/3 & help_objects/3 if old
 :- use_module(library(lynx/html_text), [html_text/1]). % only needed with old library(help)
 :- use_module(library(solution_sequences), [distinct/2]).
 :- use_module(library(lists), [append/3, member/2, selectchk/4]).
 :- use_module(library(sgml), [load_html/3]). % only needed with old library(help)
+:- use_module(library(strings), [string_lines/2]).
 :- use_module(library(uri), [uri_file_name/2]).
 :- use_module(library(yall)).
 
@@ -291,26 +294,33 @@ zip_args(Term, VariableNames, Parameters) :-
     compound_name_arguments(Parameters, Name, Combined).
 
 comment_variable_names(CommentText, VariableNames) :-
+    is_structured_comment(CommentText, Prefixes),
     string_codes(CommentText, CommentTextCodes),
-    phrase(comment_variables(VariableNames), CommentTextCodes, _).
+    indented_lines(CommentTextCodes, Prefixes, IndentLines),
+    convlist([_-Codes, String]>>(Codes \== [], string_codes(String, Codes)),
+             IndentLines, Lines),
+    string_lines(StrippedComment, Lines),
+    string_codes(StrippedComment, StrippedCommentTextCodes),
+    phrase(comment_variables(VariableNames), StrippedCommentTextCodes, _).
 
 comment_variables(VarNames) -->
-    "%!", blanks, string_without("(", _), "(",
+    blanks, string_without("(", _), "(",
     comment_variables_(VarNames).
 
 comment_variables_([]) --> ")", !.
 comment_variables_([VarName|VarNames]) -->
     blanks,
-    optional(one_of(["+", "-", "?"], ModeIndicator), [ModeIndicator = missing]), !,
+    optional(one_of(["+", "-", "?", ":"], ModeIndicator), [ModeIndicator = missing]), !,
     prolog_var_name(VarName), blanks,
     optional(comment_type_indicator(Type), { Type = any }),
+    blanks,
     comment_variables_next(VarNames).
 
 comment_variables_next(VarNames) --> ",", !, comment_variables_(VarNames).
 comment_variables_next([]) --> ")", !.
 
 comment_type_indicator(TypeName) -->
-    ":", string_without(", ", TypeName).
+    ":", string_without(", )", TypeName).
 
 one_of([], _) --> !, { fail }.
 one_of([A|_], A) --> A.
