@@ -8,9 +8,25 @@
 :- begin_tests(colours).
 
 test('Basic highlighting',
-     [% condition(\+ current_prolog_flag(windows, true) ),
+     [ condition(\+ current_prolog_flag(windows, true) ),
+       true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
+                         2,0,2,21,1,0,0,101,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
+                         14,16,0,11,14,17,0,1,1,9,14,16,0,11,14,17,0,1,4,7,14,16,
+                         1,2,1,21,0,2,0,3,12,1,0,4,1,8,0,0,3,2,21,1,1,4,3,8,4,0,4,
+                         1,12,512,0,2,1,19,0,0,1,1,21,0,1,9,7,12,512,0,11,8,18,0,
+                         0,11,1,19,0,0,3,1,8,0,0,3,1,21,0,0,2,10,17,0,1,4,17,17,0,
+                         1,12,4,12,512,0,7,1,19,0,0,2,1,19,0,0,2,1,19,0,0,4,1,8,0,
+                         0,2,1,21,0]) ]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './colours_input1.pl'),
+    file_colours(InputFile, Colours).
+
+% windows newlines change the length of multi-line highlight regions
+test('Basic highlighting (Windows)',
+    [ condition(current_prolog_flag(windows, true) ),
       true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
-                        2,0,2,21,1,0,0,101,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
+                        2,0,2,21,1,0,0,105,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
                         14,16,0,11,14,17,0,1,1,9,14,16,0,11,14,17,0,1,4,7,14,16,
                         1,2,1,21,0,2,0,3,12,1,0,4,1,8,0,0,3,2,21,1,1,4,3,8,4,0,4,
                         1,12,512,0,2,1,19,0,0,1,1,21,0,1,9,7,12,512,0,11,8,18,0,
@@ -19,25 +35,18 @@ test('Basic highlighting',
                         0,2,1,21,0]) ]) :-
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './colours_input1.pl'),
-    file_colours(InputFile, Colours).
+    relative_file_name(InputFile, ThisFile, './colours_input1_win.pl'),
+    file_colours(InputFile, Colours), writeln(Colours).
 
-% windows newlines change the length of multi-line highlight regions
-test('Basic highlighting (Windows)',
-    [ blocked('With swipl > 10.0.0, Windows seems to act the same as others'),
-      condition(current_prolog_flag(windows, true) ),
+test('Highlighting with Cyrillic content',
+    [ condition(\+ current_prolog_flag(windows, true) ),
       true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
-                        2,0,2,21,1,0,0,105,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
-                        14,16,0,11,15,17,0,1,1,9,14,16,0,11,15,17,0,1,4,7,14,16,
-                        1,2,1,21,0,2,0,3,12,1,0,4,1,8,0,0,3,2,21,1,1,4,3,8,4,0,4,
-                        1,12,512,0,2,1,19,0,0,1,1,21,0,1,9,7,12,512,0,11,8,18,0,
-                        0,11,1,19,0,0,3,1,8,0,0,3,1,21,0,0,2,11,17,0,1,4,18,17,0,
-                        1,12,4,12,512,0,7,1,19,0,0,2,1,19,0,0,2,1,19,0,0,4,1,8,0,
-                        0,2,1,21,0]) ]) :-
+                        2,0,13,17,0,1,0,3,12,1,0,4,1,8,0,0,3,2,21,1,1,4,1,8,0,0,
+                        2,1,12,512,0,2,10,18,0,0,18,1,21,0,1,4,7,12,512,0,8,1,8,
+                        0,0,2,1,21,0]) ]) :-
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
-    relative_file_name(InputFile, ThisFile, './colours_input1_win.pl'),
+    relative_file_name(InputFile, ThisFile, './colours_input_cyr.pl'),
     file_colours(InputFile, Colours).
-
 
 :- end_tests(colours).
