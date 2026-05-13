@@ -8,7 +8,7 @@
 :- begin_tests(colours).
 
 test('Basic highlighting',
-    [ condition(\+ current_prolog_flag(windows, true) ),
+     [% condition(\+ current_prolog_flag(windows, true) ),
       true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
                         2,0,2,21,1,0,0,101,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
                         14,16,0,11,14,17,0,1,1,9,14,16,0,11,14,17,0,1,4,7,14,16,
@@ -24,7 +24,8 @@ test('Basic highlighting',
 
 % windows newlines change the length of multi-line highlight regions
 test('Basic highlighting (Windows)',
-    [ condition(current_prolog_flag(windows, true) ),
+    [ blocked('With swipl > 10.0.0, Windows seems to act the same as others'),
+      condition(current_prolog_flag(windows, true) ),
       true(Colours =@= [0,0,2,21,1,0,0,19,0,0,0,3,6,12,512,0,7,4,0,0,0,9,1,21,0,
                         2,0,2,21,1,0,0,105,0,0,0,3,10,12,512,0,11,14,0,0,1,4,9,
                         14,16,0,11,15,17,0,1,1,9,14,16,0,11,15,17,0,1,4,7,14,16,
@@ -36,7 +37,7 @@ test('Basic highlighting (Windows)',
     context_module(ThisModule),
     module_property(ThisModule, file(ThisFile)),
     relative_file_name(InputFile, ThisFile, './colours_input1_win.pl'),
-    file_colours(InputFile, Colours), writeln(Colours).
+    file_colours(InputFile, Colours).
 
 
 :- end_tests(colours).
