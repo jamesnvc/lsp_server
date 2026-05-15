@@ -168,6 +168,8 @@ handle_request(Req, OutStream) :-
 
 % Handling messages
 
+:- dynamic client_encoding/1.
+
 server_capabilities(_{textDocumentSync: _{openClose: true,
                                           change: 2, %incremental
                                           save: _{includeText: false},
@@ -183,6 +185,7 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                       documentSymbolProvider: true,
                       workspaceSymbolProvider: true,
                       codeActionProvider: false,
+                      positionEncoding: Encoding,
                       %% codeLensProvider: false,
                       documentFormattingProvider: true,
                       documentRangeFormattingProvider: true,
@@ -201,7 +204,8 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
                       workspace: _{workspaceFolders: _{supported: true,
                                                        changeNotifications: true}}}) :-
     token_types(TokenTypes),
-    token_modifiers(TokenModifiers).
+    token_modifiers(TokenModifiers),
+    client_encoding(Encoding).
 
 % messages (with a response)
 handle_msg("initialize", Msg,
@@ -212,6 +216,14 @@ handle_msg("initialize", Msg,
          directory_source_files(RootPath, Files, [recursive(true), if(true)]),
          maplist([F]>>assert(loaded_source(F)), Files) )
     ; true ),
+    ( ( get_dict(capabilities, Params, Capabilities),
+        get_dict(general, Capabilities, GeneralSettings),
+        get_dict(positionEncodings, GeneralSettings, ClientPositions),
+        memberchk("utf-32", ClientPositions) )
+    -> Encoding = 'utf-32'
+    ;  Encoding = 'utf-16' ),
+    retractall(client_encoding(_)),
+    assertz(client_encoding(Encoding)),
     server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: []}) :-
     _{id: Id} :< Msg,
