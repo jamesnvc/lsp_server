@@ -117,7 +117,7 @@ colour_term_to_tuple(Stream, Dict, LastOffset, LastLine, LastChar), R -->
         mods_mask(Mods, ModMask) )
       -> Seek is NewOffset - LastOffset,
          Offset = NewOffset,
-         stream_seek_line_position(Stream, Seek, Line, Char),
+         stream_seek_line_position(Stream, Seek, LastLine, LastChar, Line, Char),
          ( Line == LastLine
          -> DeltaLine = 0,
             DeltaStart is Char - LastChar
@@ -135,34 +135,19 @@ colour_term_to_tuple(_, _, _, _, _) --> [].
 %  Advance Stream by Seek characters, then Line will be
 %  the current line number that Stream is now at and Char is the
 %  position within the line.
-stream_seek_line_position(Stream, Seek, Line, LineChar) :-
-    setup_call_cleanup(open_null_stream(NullStream),
-                       ( set_stream(NullStream, newline(posix)),
-                         copy_stream_data(Stream, NullStream, Seek) ),
-                       close(NullStream)),
-    stream_property(Stream, position(Pos)),
-    stream_position_data(line_count, Pos, Line),
-    % can't use line_position, because it counts tabs as 8 characters, which throws things off
-    % stream_position_data(line_position, Pos, Char),
-    line_position_characters(Stream, Pos, LineChar).
+stream_seek_line_position(Stream, Seek, StartLine, StartChar, Line, LineChar) :-
+    stream_seek_line_position_(Seek, Stream, StartLine, StartChar, Line, LineChar).
 
-line_position_characters(Stream, Pos, Char) :-
-    stream_position_data(byte_count, Pos, StartChar),
-    stream_position_data(line_count, Pos, StartLine),
-    ( StartLine > 1
-    -> ( repeat,
-         seek(Stream, -1, current, _),
-         peek_code(Stream, 0'\n), !,
-         get_code(Stream, _) )
-    ; seek(Stream, 0, bof, _) ),
-    byte_count(Stream, StartOfLine),
-    ( repeat,
-      byte_count(Stream, CharHere),
-      get_code(Stream, _),
-      CharHere >= StartChar, !
-    ),
-    Char is max(0, CharHere - StartOfLine),
-    set_stream_position(Stream, Pos).
+stream_seek_line_position_(0, _Stream, Line, Char, Line, Char) :- !.
+stream_seek_line_position_(Seek0, Stream, StartLine, StartChar, Line, Char) :-
+    Seek1 is Seek0 - 1,
+    get_code(Stream, NextCode),
+    ( NextCode == 0'\n
+    -> NextLine is StartLine + 1,
+       NextChar = 0
+    ; NextLine = StartLine,
+      NextChar is StartChar + 1 ),
+    stream_seek_line_position_(Seek1, Stream, NextLine, NextChar, Line, Char).
 
 colour_type(directive,                namespace, []).
 
