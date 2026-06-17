@@ -181,7 +181,8 @@ expand_subterm_positions(Term, TermState, term_position(From, To, FFrom, FTo, Su
     % better way to tell if term is parenthesized?
     % read functor from current_source_string/1 (as with simple below)
     % and see if parens are there?
-    (  From = FFrom, max_subterm_to(SubPoses, SubTermMax), To > SubTermMax
+    (  From = FFrom, once(( ( max_subterm_to(SubPoses, SubTermMax), To > SubTermMax ) ;
+                            ( Arity == 0, TermType == compound )))
     -> ( Parens = true, FTo1 is FTo + 1 ) % add space for the parenthesis
     ;  ( Parens = false, FTo1 = FTo )  ),
     Expanded = [term_begin(FFrom, FTo1, Func, TermType, Parens)|ExpandedTail0],
