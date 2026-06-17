@@ -80,7 +80,7 @@ test('help at position',
 Availability: built-in
 
 
-True if Int2 = Int1 + 1 and Int1 ≥.  At least  one of  the arguments
+True if Int2 = Int1 + 1 and Int1 ≥0. At least  one of  the arguments
 must be instantiated to a natural number. This predicate  raises the
 domain error not_less_than_zero if called  with a  negative integer.
 E.g.  succ(X,  0)  fails silently  and succ(X,  -1) raises  a domain
