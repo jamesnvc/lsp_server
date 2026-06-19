@@ -3,6 +3,7 @@
                       name_callable/2,
                       relative_ref_location/4,
                       help_at_position/4,
+                      help_at_position/5,
                       clause_in_file_at_position/3,
                       clause_variable_positions/3,
                       usemod_filespec_position/4,
@@ -38,6 +39,7 @@ source and stuff.
 
 :- include('_lsp_path_add.pl').
 
+:- use_module(lsp(lsp_html_markdown), [ html_markdown/1 ]).
 :- use_module(lsp(lsp_reading_source), [ file_lines_start_end/2,
                                          read_term_positions/2,
                                          read_term_positions/4,
@@ -216,9 +218,16 @@ xref_source_recursive(S) :-
 %  =Help= is the documentation for the term under the cursor at line
 %  =Line=, character =Char= in the file =Path=.
 help_at_position(Path, Line1, Char0, S) :-
+    help_at_position(plaintext, Path, Line1, Char0, S).
+
+%! help_at_position(+Format:atom, +Path:atom, +Line:integer, +Char:integer, -Help:string) is det.
+%
+%  =Help= is the documentation for the term under the cursor at line
+%  =Line=, character =Char= in the file =Path=.
+help_at_position(Format, Path, Line1, Char0, S) :-
     xref_source_recursive(Path), % recursively xref dependencies to get docs
     clause_in_file_at_position(Clause, Path, line_char(Line1, Char0)),
-    predicate_help(Path, Clause, S0),
+    predicate_help(Format, Path, Clause, S0),
     maybe_move_path(Path, S0, S1),
     format_help(S1, S).
 
@@ -256,24 +265,29 @@ format_help(HelpFull, Help) :-
     atom_string(Help, Help1).
 
 :- if(current_predicate(help_text/2)).
-predicate_help(_, Pred, Help) :-
+predicate_help(plaintext, _Path, Pred, Help) :-
     help_text(Pred, Help), !.
-:- else.
-predicate_help(_, Pred, Help) :-
+:- endif.
+predicate_help(Format, _Path, Pred, Help) :-
     nonvar(Pred),
     prolog_help:help_objects(Pred, exact, Matches), !,
     catch(prolog_help:help_html(Matches, exact-exact, HtmlDoc), _, fail),
     setup_call_cleanup(open_string(HtmlDoc, In),
                        load_html(stream(In), Dom, []),
                        close(In)),
-    with_output_to(string(Help), html_text(Dom)).
-:- endif.
-predicate_help(HerePath, Pred, Help) :-
+    debug(xxx, "HELP HTML ~q", [Dom]),
+    with_output_to(string(Help),
+                   ( Format == markdown
+                   -> html_markdown(Dom)
+                   ; html_text(Dom) )
+                  ).
+predicate_help(_Format, HerePath, Pred, Help) :-
     xref_source(HerePath),
     name_callable(Pred, Callable),
     xref_defined(HerePath, Callable, Loc),
     location_path(HerePath, Loc, Path),
     once(xref_comment(Path, Callable, Summary, Comment)),
+    % TODO: try to markdownify here if format?
     pldoc_process:parse_comment(Comment, Path:0, Parsed),
     memberchk(mode(Signature, Mode), Parsed),
     memberchk(predicate(_, Summary, CommentText), Parsed),

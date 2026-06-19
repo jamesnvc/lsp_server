@@ -170,6 +170,8 @@ handle_request(Req, OutStream) :-
 
 :- dynamic client_encoding/1.
 
+:- dynamic client_hover_format/1.
+
 server_capabilities(_{textDocumentSync: _{openClose: true,
                                           change: 2, %incremental
                                           save: _{includeText: false},
@@ -211,11 +213,14 @@ server_capabilities(_{textDocumentSync: _{openClose: true,
 handle_msg("initialize", Msg,
            _{id: Id, result: _{capabilities: ServerCapabilities}}) :-
     _{id: Id, params: Params} :< Msg, !,
+    % Get project root
     ( Params.rootUri \== null
     -> ( url_path(Params.rootUri, RootPath),
          directory_source_files(RootPath, Files, [recursive(true), if(true)]),
          maplist([F]>>assert(loaded_source(F)), Files) )
     ; true ),
+    % Get encoding capabilities
+    % not actually using right now...
     ( ( get_dict(capabilities, Params, Capabilities),
         get_dict(general, Capabilities, GeneralSettings),
         get_dict(positionEncodings, GeneralSettings, ClientPositions),
@@ -224,6 +229,15 @@ handle_msg("initialize", Msg,
     ;  Encoding = 'utf-16' ),
     retractall(client_encoding(_)),
     assertz(client_encoding(Encoding)),
+    % Get hover format capabilities
+    ( ( get_dict(textDocument, Capabilities, TextSettings),
+        get_dict(hover, TextSettings, HoverSettings),
+        get_dict(contentFormat, HoverSettings, HoverFormats),
+        memberchk("markdown", HoverFormats) )
+    -> HoverFormat = markdown
+    ;  HoverFormat = plaintext ),
+    retractall(client_hover_format(_)),
+    assertz(client_hover_format(HoverFormat)),
     server_capabilities(ServerCapabilities).
 handle_msg("shutdown", Msg, _{id: Id, result: []}) :-
     _{id: Id} :< Msg,
@@ -242,8 +256,9 @@ handle_msg("textDocument/hover", Msg, _{id: Id, result: Response}) :-
                 textDocument: _{uri: Doc}}, id: Id} :< Msg,
     url_path(Doc, Path),
     Line1 is Line0 + 1,
-    (  help_at_position(Path, Line1, Char0, Help)
-    -> Response = _{contents: _{kind: plaintext, value: Help}}
+    client_hover_format(Format),
+    (  help_at_position(Format, Path, Line1, Char0, Help)
+    -> Response = _{contents: _{kind: Format, value: Help}}
     ;  Response = null  ).
 handle_msg("textDocument/documentSymbol", Msg, _{id: Id, result: Symbols}) :-
     _{id: Id, params: _{textDocument: _{uri: Doc}}} :< Msg,
