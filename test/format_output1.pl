@@ -206,4 +206,11 @@ car(car_21). car(car_22). car(car_23).
 aoeuoaeu(X) :-
     X = baz().
 
+:- op(500, xfx, 👍).
+
+👍(A, B) :-
+    B is A * 10.
+
+?- 10 👍 B, writeln(B).
+
 % end comment
