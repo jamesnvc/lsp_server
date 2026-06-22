@@ -113,7 +113,7 @@ correct_indentation(State0, [In|InRest], Out) :-
          ; In = term_begin(';', compound, false))),
     indent_state_top(State0, defn_body_indent), !,
     indent_state_pop(State0, State1),
-    paren_state_top(State1, Indent),
+    once(( paren_state_top(State1, Indent) ; Indent = 0 )),
     Out = [white(Indent)|OutRest],
     update_state_column(State1, white(Indent), State4),
     correct_indentation(State4, [In|InRest], OutRest).
