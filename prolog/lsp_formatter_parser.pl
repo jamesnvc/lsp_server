@@ -199,7 +199,12 @@ expand_subterm_positions(_Term, TermState, From-To, Expanded, Tail) =>
     current_source_string(FileString),
     Length is To - From,
     sub_string(FileString, From, Length, _, SimpleString),
-    Expanded = [simple(From, To, SimpleString)|Tail0],
+    ( TermState == toplevel
+    -> To1 is To + 1,
+       Expanded = [term_begin(From, To, SimpleString, compound, false),
+                   term_end(To, To1, false, TermState)
+                   |Tail0]
+    ; Expanded = [simple(From, To, SimpleString)|Tail0] ),
     maybe_add_comma(TermState, To, Tail0, Tail).
 expand_subterm_positions(Term, TermState, list_position(From, To, Elms, HasTail), Expanded, Tail) =>
     assertion(is_listish(Term)),

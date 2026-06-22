@@ -68,4 +68,17 @@ test('Formatting CHR',
     file_formatted(InputFile, Formatted),
     with_output_to(string(OutputFileText), emit_reified(current_output, Formatted)).
 
+test('Formatting weird disjunctions',
+     [ true(InputFileText == OutputFileText),
+       setup(( current_prolog_flag(encoding, PrevEncoding),
+               set_prolog_flag(encoding, utf8) )),
+       cleanup(set_prolog_flag(encoding, PrevEncoding))
+     ]) :-
+    context_module(ThisModule),
+    module_property(ThisModule, file(ThisFile)),
+    relative_file_name(InputFile, ThisFile, './format_input3.pl'),
+    read_file_to_string(InputFile, InputFileText, [ encoding(utf8) ]),
+    file_formatted(InputFile, Formatted),
+    with_output_to(string(OutputFileText), emit_reified(current_output, Formatted)).
+
 :- end_tests(formatting).
