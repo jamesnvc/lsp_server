@@ -1,4 +1,4 @@
-:- module(server_t, []).
+:- module(parser_t, []).
 
 :- use_module(library(plunit)).
 
@@ -20,6 +20,5 @@ test('Parsing content') :-
            id: 1,
            method: "textDocument/didOpen",
            params: _{thing: 1}}} :< Req.
-
 
 :- end_tests(parsing).
