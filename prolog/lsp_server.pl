@@ -221,18 +221,15 @@ handle_msg("initialize", Msg,
     ; true ),
     % Get encoding capabilities
     % not actually using right now...
-    ( ( get_dict(capabilities, Params, Capabilities),
-        get_dict(general, Capabilities, GeneralSettings),
-        get_dict(positionEncodings, GeneralSettings, ClientPositions),
+    ( ( ClientPositions = Params.get(capabilities/general/positionEncodings),
         memberchk("utf-32", ClientPositions) )
     -> Encoding = 'utf-32'
     ;  Encoding = 'utf-16' ),
     retractall(client_encoding(_)),
     assertz(client_encoding(Encoding)),
     % Get hover format capabilities
-    ( ( get_dict(textDocument, Capabilities, TextSettings),
-        get_dict(hover, TextSettings, HoverSettings),
-        get_dict(contentFormat, HoverSettings, HoverFormats),
+    ( ( HoverFormats = Params.get(capabilities/general/textDocument/hover/
+                                  contentFormat),
         memberchk("markdown", HoverFormats) )
     -> HoverFormat = markdown
     ;  HoverFormat = plaintext ),
