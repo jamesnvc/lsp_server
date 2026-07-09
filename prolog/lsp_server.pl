@@ -230,7 +230,8 @@ handle_msg("initialize", Msg,
     retractall(client_encoding(_)),
     assertz(client_encoding(Encoding)),
     % Get hover format capabilities
-    ( ( get_dict(textDocument, Capabilities, TextSettings),
+    ( ( get_dict(capabilities, Params, Capabilities),
+        get_dict(textDocument, Capabilities, TextSettings),
         get_dict(hover, TextSettings, HoverSettings),
         get_dict(contentFormat, HoverSettings, HoverFormats),
         memberchk("markdown", HoverFormats) )
