@@ -53,7 +53,7 @@ register_new_pack(NewVersion) :-
     memberchk(name(ProjectName), PackTerms),
     memberchk(download(DownloadURLPattern), PackTerms),
     download_pattern_format_string(DownloadURLPattern, URLFormat),
-    ( pack_remove(ProjectName) -> true ; true ),
+    ignore(pack_remove(ProjectName)),
     format(atom(Url), URLFormat, [NewVersion]),
     pack_install(ProjectName, [url(Url), interactive(false)]).
 
