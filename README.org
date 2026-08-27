@@ -306,3 +306,23 @@ However, the default configuration gives the '.pl' extension to perl, so to avoi
 name = "perl"
 file-types = ["perl"]
 #+end_src
+* Kate
+
+Open settings, go to ~LSP Client~, select the ~User Server Settings~ tab, and add the following content (or merge with your existing settings if present):
+
+#+begin_src json
+{
+  "servers": {
+    "prolog": {
+      "command": ["swipl", "-O",
+                  "-g", "use_module(library(lsp_server))",
+                  "-g", "lsp_server:main",
+                  "-t", "halt",
+                  "--", "stdio"],
+      "url": "https://github.com/jamesnvc/lsp_server",
+      "root": ""
+      "highlightingModeRegex": "^Prolog$"
+    }
+  }
+}
+#+end_src
