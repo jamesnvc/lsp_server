@@ -232,8 +232,7 @@ handle_msg("initialize", Msg,
     retractall(client_encoding(_)),
     assertz(client_encoding(Encoding)),
     % Get hover format capabilities
-    ( ( HoverFormats = Params.get(capabilities/general/textDocument/hover/
-                                  contentFormat),
+    ( ( HoverFormats = Params.get(capabilities/textDocument/hover/contentFormat),
         memberchk("markdown", HoverFormats) )
     -> HoverFormat = markdown
     ;  HoverFormat = plaintext ),
