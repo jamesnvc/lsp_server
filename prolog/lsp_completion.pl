@@ -80,7 +80,7 @@ completions_at(File, Position, Completions) :-
     ).
 
 predicate_arguments(File, Pred/Arity, ArgsStr) :-
-    lsp_utils:predicate_help(File, Pred/Arity, HelpText),
+    lsp_utils:predicate_help(plaintext, File, Pred/Arity, HelpText),
     string_concat(Pred, "(", PredName),
     sub_string(HelpText, BeforeName, NameLen, _, PredName),
     sub_string(HelpText, BeforeClose, _, _, ")"),
